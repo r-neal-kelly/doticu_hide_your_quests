@@ -12,6 +12,8 @@
 
 namespace doticu_skylib { namespace doticu_quest_lookup {
 
+    Vector_t<some<Quest_t*>> Plugin_t::quests;
+
     Plugin_t::Plugin_t() :
         SKSE_Plugin_t("doticu_quest_lookup",
                       Version_t<u16>(1, 5, 97),
@@ -38,6 +40,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     void Plugin_t::On_After_Load_Data()
     {
+        this->quests.reserve(1);
+        this->quests.push_back(Const::Quest::MCM());
     }
 
     void Plugin_t::On_After_New_Game()
@@ -65,6 +69,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
                 some<Wait_Callback*> wait_callback = new Wait_Callback();
                 Virtual::Utility_t::Wait_Out_Of_Menu(1.0f, wait_callback());
                 (*wait_callback)();
+            } else {
+                UI_t::Create_Message_Box(Const::String::QUESTS_ARE_NOT_RUNNING_NEW, none<Virtual::Callback_i*>());
             }
         }
     }
@@ -96,7 +102,27 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             if (Is_Active()) {
                 if (Is_Installed()) {
                     if (Are_Quests_Running()) {
+                        const Version_t<u16>& current = Const::Version::Self();
+                        const Version_t<u16> saved(Const::Global::Version_Major()->As<u16>(),
+                                                   Const::Global::Version_Minor()->As<u16>(),
+                                                   Const::Global::Version_Patch()->As<u16>());
+                        if (saved < current) {
+                            Const::Global::Version_Major()->As<u16>(current.major);
+                            Const::Global::Version_Minor()->As<u16>(current.minor);
+                            Const::Global::Version_Patch()->As<u16>(current.patch);
+
+                            MCM_t::On_Update_Version(saved);
+
+                            UI_t::Create_Notification("Quest Lookup: Updated to version " +
+                                                      std::to_string(current.major) + "." +
+                                                      std::to_string(current.minor) + "." +
+                                                      std::to_string(current.patch),
+                                                      none<Virtual::Callback_i*>());
+                        }
+
                         MCM_t::On_After_Load_Game();
+                    } else {
+                        UI_t::Create_Message_Box(Const::String::QUESTS_ARE_NOT_RUNNING_LOAD, none<Virtual::Callback_i*>());
                     }
                 } else {
                     On_After_New_Game();
@@ -125,23 +151,12 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     Bool_t Plugin_t::Are_Quests_Running()
     {
-        Vector_t<some<Quest_t*>> quests;
-        for (size_t idx = 0, end = quests.size(); idx < end; idx += 1) {
-            if (!quests[idx]->Is_Enabled()) {
+        for (size_t idx = 0, end = this->quests.size(); idx < end; idx += 1) {
+            if (!this->quests[idx]->Is_Enabled()) {
                 return false;
             }
         }
         return true;
-    }
-
-    Vector_t<some<Quest_t*>> Plugin_t::Quests()
-    {
-        Vector_t<some<Quest_t*>> quests;
-        quests.reserve(1);
-
-        quests.push_back(Const::Quest::MCM());
-
-        return quests;
     }
 
     Plugin_t plugin;

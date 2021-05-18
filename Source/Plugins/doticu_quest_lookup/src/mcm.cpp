@@ -169,6 +169,11 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         MCM_Active_t::On_After_Load_Game();
     }
 
+    void MCM_t::On_Update_Version(const Version_t<u16> version_to_update)
+    {
+        MCM_Active_t::On_Update_Version(version_to_update);
+    }
+
     Bool_t MCM_t::On_Config_Open(Virtual::Stack_ID_t stack_id)
     {
         Virtual::Latent_ID_t latent_id(stack_id);

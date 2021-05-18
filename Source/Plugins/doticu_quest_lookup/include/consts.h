@@ -31,9 +31,12 @@ namespace doticu_skylib { namespace doticu_quest_lookup { namespace Const {
 
     namespace String {
 
-        static const char* ACTIVE                   = "$dquestl_active";
+        static const char* ACTIVE                       = "$dquestl_active";
 
-        static const char* THANK_YOU_FOR_PLAYING    = "$dquestl_thank_you_playing";
+        static const char* THANK_YOU_FOR_PLAYING        = "$dquestl_thank_you_for_playing";
+
+        static const char* QUESTS_ARE_NOT_RUNNING_NEW   = "$dquestl_quests_are_not_running_new";
+        static const char* QUESTS_ARE_NOT_RUNNING_LOAD  = "$dquestl_quests_are_not_running_load";
 
     }
 

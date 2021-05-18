@@ -13,6 +13,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     class Plugin_t :
         public SKSE_Plugin_t
     {
+    protected:
+        static Vector_t<some<Quest_t*>> quests;
+
     public:
         Plugin_t();
 
@@ -34,9 +37,6 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         Bool_t  Is_Active();
         Bool_t  Is_Installed();
         Bool_t  Are_Quests_Running();
-
-    public:
-        Vector_t<some<Quest_t*>>    Quests();
     };
 
     extern Plugin_t plugin;

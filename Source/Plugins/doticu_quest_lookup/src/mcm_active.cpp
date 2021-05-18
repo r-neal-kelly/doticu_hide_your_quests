@@ -123,6 +123,10 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         save_state->Read();
     }
 
+    void MCM_Active_t::On_Update_Version(const Version_t<u16> version_to_update)
+    {
+    }
+
     void MCM_Active_t::On_Config_Open()
     {
     }

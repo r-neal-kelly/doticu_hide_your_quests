@@ -8,6 +8,7 @@
 
 #include "doticu_mcmlib/config_base.h"
 
+#include "consts.h"
 #include "intrinsic.h"
 
 namespace doticu_skylib { namespace doticu_quest_lookup {
@@ -15,6 +16,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     class MCM_t :
         public doticu_mcmlib::Config_Base_t
     {
+    public:
+        static constexpr const char*    DEFAULT_CURRENT_PAGE    = Const::String::ACTIVE;
+
     public:
         class Save_State_t
         {
@@ -38,7 +42,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         };
 
     public:
-        static maybe<Save_State_t*> save_state;
+        static Save_State_t save_state;
 
     public:
         static some<MCM_t*>             Self();
@@ -47,10 +51,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         static some<Virtual::Object_t*> Object();
 
     public:
-        static Bool_t   Has_Save_State();
-        static void     Create_Save_State();
-        static void     Delete_Save_State();
+        static void Reset_Save_State();
 
+    public:
         static Bool_t   Current_Page(String_t& result);
 
     public:

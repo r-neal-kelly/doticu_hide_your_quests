@@ -12,7 +12,7 @@
 namespace doticu_skylib { namespace doticu_quest_lookup {
 
     MCM_t::Save_State_t::Save_State_t() :
-        current_page(Const::String::ACTIVE)
+        current_page(DEFAULT_CURRENT_PAGE)
     {
     }
 
@@ -35,7 +35,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         Current_Page() = this->current_page;
     }
 
-    maybe<MCM_t::Save_State_t*> MCM_t::save_state = none<MCM_t::Save_State_t*>();
+    MCM_t::Save_State_t MCM_t::save_state;
 
     some<MCM_t*> MCM_t::Self()
     {
@@ -57,32 +57,24 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         DEFINE_COMPONENT_OBJECT_METHOD(Self()());
     }
 
-    Bool_t MCM_t::Has_Save_State()
+    void MCM_t::Reset_Save_State()
     {
-        return save_state != none<Save_State_t*>();
-    }
-
-    void MCM_t::Create_Save_State()
-    {
-        Delete_Save_State();
-        save_state = new Save_State_t();
-    }
-
-    void MCM_t::Delete_Save_State()
-    {
-        if (Has_Save_State()) {
-            delete save_state();
-        }
+        save_state.~Save_State_t();
+        new (&save_state) Save_State_t;
     }
 
     Bool_t MCM_t::Current_Page(String_t& result)
     {
+        if (!save_state.current_page) {
+            save_state.current_page = DEFAULT_CURRENT_PAGE;
+        }
+
         if (!result) {
-            result = save_state->current_page;
+            result = save_state.current_page;
             return false;
         } else {
-            if (result != save_state->current_page) {
-                save_state->current_page = result;
+            if (result != save_state.current_page) {
+                save_state.current_page = result;
                 return false;
             } else {
                 return true;
@@ -136,16 +128,14 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     void MCM_t::On_After_New_Game()
     {
-        Create_Save_State();
+        Reset_Save_State();
 
         MCM_Active_t::On_After_New_Game();
     }
 
     void MCM_t::On_Before_Save_Game()
     {
-        SKYLIB_ASSERT(Has_Save_State());
-
-        save_state->Write();
+        save_state.Write();
 
         MCM_Active_t::On_Before_Save_Game();
     }
@@ -162,9 +152,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     void MCM_t::On_After_Load_Game()
     {
-        Create_Save_State();
+        Reset_Save_State();
 
-        save_state->Read();
+        save_state.Read();
 
         MCM_Active_t::On_After_Load_Game();
     }
@@ -203,9 +193,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         Bool_t is_refresh = Current_Page(page);
 
-        if (page == Const::String::ACTIVE) {
-            MCM_Active_t::On_Page_Open(std::move(latent_id), is_refresh);
-        }
+        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Page_Open(std::move(latent_id), is_refresh);
 
         return true;
     }
@@ -214,11 +202,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
         Virtual::Latent_ID_t latent_id(stack_id);
 
-        String_t page = save_state->current_page;
+        String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE) {
-            MCM_Active_t::On_Option_Select(std::move(latent_id), option);
-        }
+        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Select(std::move(latent_id), option);
 
         return true;
     }
@@ -227,11 +213,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
         Virtual::Latent_ID_t latent_id(stack_id);
 
-        String_t page = save_state->current_page;
+        String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE) {
-            MCM_Active_t::On_Option_Menu_Open(std::move(latent_id), option);
-        }
+        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Menu_Open(std::move(latent_id), option);
 
         return true;
     }
@@ -240,11 +224,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
         Virtual::Latent_ID_t latent_id(stack_id);
 
-        String_t page = save_state->current_page;
+        String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE) {
-            MCM_Active_t::On_Option_Menu_Accept(std::move(latent_id), option, index);
-        }
+        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Menu_Accept(std::move(latent_id), option, index);
 
         return true;
     }
@@ -253,11 +235,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
         Virtual::Latent_ID_t latent_id(stack_id);
 
-        String_t page = save_state->current_page;
+        String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE) {
-            MCM_Active_t::On_Option_Slider_Open(std::move(latent_id), option);
-        }
+        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Slider_Open(std::move(latent_id), option);
 
         return true;
     }
@@ -266,11 +246,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
         Virtual::Latent_ID_t latent_id(stack_id);
 
-        String_t page = save_state->current_page;
+        String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE) {
-            MCM_Active_t::On_Option_Slider_Accept(std::move(latent_id), option, value);
-        }
+        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Slider_Accept(std::move(latent_id), option, value);
 
         return true;
     }
@@ -279,11 +257,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
         Virtual::Latent_ID_t latent_id(stack_id);
 
-        String_t page = save_state->current_page;
+        String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE) {
-            MCM_Active_t::On_Option_Input_Accept(std::move(latent_id), option, value);
-        }
+        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Input_Accept(std::move(latent_id), option, value);
 
         return true;
     }
@@ -292,11 +268,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
         Virtual::Latent_ID_t latent_id(stack_id);
 
-        String_t page = save_state->current_page;
+        String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE) {
-            MCM_Active_t::On_Option_Keymap_Change(std::move(latent_id), option, key, conflict, mod);
-        }
+        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Keymap_Change(std::move(latent_id), option, key, conflict, mod);
 
         return true;
     }
@@ -305,11 +279,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
         Virtual::Latent_ID_t latent_id(stack_id);
 
-        String_t page = save_state->current_page;
+        String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE) {
-            MCM_Active_t::On_Option_Default(std::move(latent_id), option);
-        }
+        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Default(std::move(latent_id), option);
 
         return true;
     }
@@ -318,11 +290,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
         Virtual::Latent_ID_t latent_id(stack_id);
 
-        String_t page = save_state->current_page;
+        String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE) {
-            MCM_Active_t::On_Option_Highlight(std::move(latent_id), option);
-        }
+        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Highlight(std::move(latent_id), option);
 
         return true;
     }

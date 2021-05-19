@@ -75,7 +75,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         }
     }
 
-    void Plugin_t::On_Before_Save_Game()
+    void Plugin_t::On_Before_Save_Game(some<const char*> file_path, u32 file_path_length)
     {
         if (Is_Active() && Is_Installed() && Are_Quests_Running()) {
             MCM_t::On_Before_Save_Game();

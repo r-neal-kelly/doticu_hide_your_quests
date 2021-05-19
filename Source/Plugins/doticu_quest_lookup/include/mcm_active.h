@@ -7,6 +7,8 @@
 #include "doticu_skylib/quest.h"
 #include "doticu_skylib/virtual_latent_id.h"
 
+#include "enum_mcm_view.h"
+
 namespace doticu_skylib { namespace doticu_quest_lookup {
 
     class MCM_t;
@@ -15,8 +17,20 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         public Quest_t
     {
     public:
+        static constexpr MCM_View_e::value_type DEFAULT_CURRENT_VIEW        = MCM_View_e::LIST;
+
+        static constexpr Int_t                  DEFAULT_LIST_CURRENT_PAGE   = 0;
+
+    public:
         class Save_State_t
         {
+        public:
+            maybe<MCM_View_e>   current_view;
+
+            Int_t               list_current_page;
+
+            maybe<Quest_t*>     item_current;
+
         public:
             Save_State_t();
             Save_State_t(const Save_State_t& other) = delete;
@@ -26,12 +40,55 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             ~Save_State_t();
 
         public:
+            Virtual::Variable_tt<String_t>&         Current_View();
+
+            Virtual::Variable_tt<Int_t>&            List_Current_Page();
+
+            Virtual::Variable_tt<maybe<Quest_t*>>&  Item_Current();
+
+        public:
             void    Read();
             void    Write();
         };
 
+        class Option_State_t
+        {
+        public:
+            Int_t   filter;
+            Int_t   options;
+            Int_t   previous;
+            Int_t   next;
+
+        public:
+            Option_State_t();
+            Option_State_t(const Option_State_t& other) = delete;
+            Option_State_t(Option_State_t&& other) noexcept = delete;
+            Option_State_t& operator =(const Option_State_t& other) = delete;
+            Option_State_t& operator =(Option_State_t&& other) noexcept = delete;
+            ~Option_State_t();
+        };
+
+        class List_State_t
+        {
+        public:
+            Vector_t<some<Quest_t*>>    items;
+
+        public:
+            List_State_t();
+            List_State_t(const List_State_t& other) = delete;
+            List_State_t(List_State_t&& other) noexcept = delete;
+            List_State_t& operator =(const List_State_t& other) = delete;
+            List_State_t& operator =(List_State_t&& other) noexcept = delete;
+            ~List_State_t();
+
+        public:
+            Vector_t<some<Quest_t*>>&   Items();
+        };
+
     public:
-        static maybe<Save_State_t*> save_state;
+        static Save_State_t     save_state;
+        static Option_State_t   option_state;
+        static List_State_t     list_state;
 
     public:
         static some<MCM_t*>             MCM();
@@ -42,9 +99,12 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         static some<Virtual::Object_t*> Object();
 
     public:
-        static Bool_t   Has_Save_State();
-        static void     Create_Save_State();
-        static void     Delete_Save_State();
+        static void Reset_Save_State();
+        static void Reset_Option_State();
+        static void Reset_List_State();
+
+    public:
+        static some<MCM_View_e> Current_View();
 
     public:
         static void On_Register(some<Virtual::Machine_t*> v_machine);
@@ -71,6 +131,10 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         static void On_Option_Keymap_Change(Virtual::Latent_ID_t&& latent_id, Int_t option, Int_t key, String_t conflict, String_t mod);
         static void On_Option_Default(Virtual::Latent_ID_t&& latent_id, Int_t option);
         static void On_Option_Highlight(Virtual::Latent_ID_t&& latent_id, Int_t option);
+
+        static void On_Page_Open_List(Virtual::Latent_ID_t&& latent_id, Bool_t is_refresh);
+
+        static void On_Page_Open_Item(Virtual::Latent_ID_t&& latent_id, Bool_t is_refresh);
     };
 
 }}

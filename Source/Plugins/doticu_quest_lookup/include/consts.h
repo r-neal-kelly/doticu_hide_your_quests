@@ -31,8 +31,23 @@ namespace doticu_skylib { namespace doticu_quest_lookup { namespace Const {
 
     namespace String {
 
-        static constexpr const char*    ACTIVE_QUESTS               = "$dquestl_active_quests";
-        static constexpr const char*    $ACTIVE_QUESTS              = "Active Quests";
+        static constexpr const char*    JOURNAL_QUESTS              = "$dquestl_journal_quests";
+        static constexpr const char*    $JOURNAL_QUEST              = "Journal Quest";
+        static constexpr const char*    $JOURNAL_QUESTS             = "Journal Quests";
+
+        static constexpr const char*    OBJECTIVES                  = "$dquestl_objectives";
+
+        static constexpr const char*    NO_QUESTS                   = "$dquestl_no_quests";
+
+        static constexpr const char*    CENTER_FILTER               = "$dquestl_center_filter";
+        static constexpr const char*    CENTER_OPTIONS              = "$dquestl_center_options";
+        static constexpr const char*    CENTER_GO_TO_PREVIOUS_PAGE  = "$dquestl_center_go_to_previous_page";
+        static constexpr const char*    CENTER_GO_TO_NEXT_PAGE      = "$dquestl_center_go_to_next_page";
+        static constexpr const char*    CENTER_GO_TO_PREVIOUS_QUEST = "$dquestl_center_go_to_previous_quest";
+        static constexpr const char*    CENTER_GO_TO_NEXT_QUEST     = "$dquestl_center_go_to_next_quest";
+        static constexpr const char*    CENTER_BACK                 = "$dquestl_center_back";
+        static constexpr const char*    CENTER_CLEAR                = "$dquestl_center_clear";
+        static constexpr const char*    CENTER_RESET                = "$dquestl_center_reset";
 
         static constexpr const char*    THANK_YOU_FOR_PLAYING       = "$dquestl_thank_you_for_playing";
 

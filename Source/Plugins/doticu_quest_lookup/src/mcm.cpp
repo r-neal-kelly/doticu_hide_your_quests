@@ -7,7 +7,7 @@
 
 #include "consts.h"
 #include "mcm.h"
-#include "mcm_active.h"
+#include "mcm_journal.h"
 
 namespace doticu_skylib { namespace doticu_quest_lookup {
 
@@ -96,6 +96,60 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         return items + "               " + pages;
     }
 
+    std::string MCM_t::Item_Title(const char* item_type, const char* item_name, Int_t item_index, Int_t item_count)
+    {
+        std::string item =
+            std::string(item_type) + ": " +
+            item_name;
+
+        std::string items =
+            std::string("Item") + ": " +
+            std::to_string(item_index + 1) + "/" +
+            std::to_string(item_count);
+
+        return item + "               " + items;
+    }
+
+    maybe<size_t> MCM_t::Option_To_Item_Index(Int_t option,
+                                              Int_t item_count,
+                                              Int_t page_index,
+                                              Int_t headers_per_page,
+                                              Int_t items_per_page)
+    {
+        Int_t relative_idx = doticu_mcmlib::Option_t(option).position - headers_per_page;
+        if (relative_idx > -1 && relative_idx < items_per_page) {
+            Int_t absolute_idx = page_index * items_per_page + relative_idx;
+            if (absolute_idx > -1 && absolute_idx < item_count) {
+                return absolute_idx;
+            } else {
+                return none<size_t>();
+            }
+        } else {
+            return none<size_t>();
+        }
+    }
+
+    maybe<size_t> MCM_t::Option_To_Item_Index(Int_t option,
+                                              Int_t option_begin,
+                                              Int_t item_count)
+    {
+        Int_t begin = doticu_mcmlib::Option_t(option_begin).position;
+        Int_t index = doticu_mcmlib::Option_t(option).position - begin;
+        if (index > -1) {
+            Int_t end = index + item_count;
+            if (end < 0 || end > 128) {
+                end = 128;
+            }
+            if (index < end) {
+                return index;
+            } else {
+                return none<size_t>();
+            }
+        } else {
+            return none<size_t>();
+        }
+    }
+
     void MCM_t::On_Register(some<Virtual::Machine_t*> v_machine)
     {
         using type_name = MCM_t;
@@ -135,7 +189,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         #undef METHOD
 
-        MCM_Active_t::On_Register(v_machine);
+        MCM_Journal_t::On_Register(v_machine);
 
         SKYLIB_LOG("- Registered all MCM functions.");
     }
@@ -144,24 +198,24 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
         Reset_Save_State();
 
-        MCM_Active_t::On_After_New_Game();
+        MCM_Journal_t::On_After_New_Game();
     }
 
     void MCM_t::On_Before_Save_Game()
     {
         save_state.Write();
 
-        MCM_Active_t::On_Before_Save_Game();
+        MCM_Journal_t::On_Before_Save_Game();
     }
 
     void MCM_t::On_After_Save_Game()
     {
-        MCM_Active_t::On_After_Save_Game();
+        MCM_Journal_t::On_After_Save_Game();
     }
 
     void MCM_t::On_Before_Load_Game()
     {
-        MCM_Active_t::On_Before_Load_Game();
+        MCM_Journal_t::On_Before_Load_Game();
     }
 
     void MCM_t::On_After_Load_Game()
@@ -170,12 +224,12 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         save_state.Read();
 
-        MCM_Active_t::On_After_Load_Game();
+        MCM_Journal_t::On_After_Load_Game();
     }
 
     void MCM_t::On_Update_Version(const Version_t<u16> version_to_update)
     {
-        MCM_Active_t::On_Update_Version(version_to_update);
+        MCM_Journal_t::On_Update_Version(version_to_update);
     }
 
     Bool_t MCM_t::On_Config_Open(Virtual::Stack_ID_t stack_id)
@@ -184,10 +238,10 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         Vector_t<String_t> pages;
         pages.reserve(1);
-        pages.push_back(Const::String::ACTIVE_QUESTS);
+        pages.push_back(Const::String::JOURNAL_QUESTS);
         Pages() = pages;
 
-        MCM_Active_t::On_Config_Open();
+        MCM_Journal_t::On_Config_Open();
 
         return true;
     }
@@ -196,7 +250,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
         Virtual::Latent_ID_t latent_id(stack_id);
 
-        MCM_Active_t::On_Config_Close();
+        MCM_Journal_t::On_Config_Close();
 
         return true;
     }
@@ -207,8 +261,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         Bool_t is_refresh = Current_Page(page);
 
-        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Page_Open(std::move(latent_id), is_refresh);
-        else                                        MCM_Active_t::On_Page_Open(std::move(latent_id), is_refresh);
+        if (page == Const::String::JOURNAL_QUESTS)  MCM_Journal_t::On_Page_Open(std::move(latent_id), is_refresh);
+        else                                        MCM_Journal_t::On_Page_Open(std::move(latent_id), is_refresh);
 
         return true;
     }
@@ -219,8 +273,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Select(std::move(latent_id), option);
-        else                                        MCM_Active_t::On_Option_Select(std::move(latent_id), option);
+        if (page == Const::String::JOURNAL_QUESTS)  MCM_Journal_t::On_Option_Select(std::move(latent_id), option);
+        else                                        MCM_Journal_t::On_Option_Select(std::move(latent_id), option);
 
         return true;
     }
@@ -231,8 +285,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Menu_Open(std::move(latent_id), option);
-        else                                        MCM_Active_t::On_Option_Menu_Open(std::move(latent_id), option);
+        if (page == Const::String::JOURNAL_QUESTS)  MCM_Journal_t::On_Option_Menu_Open(std::move(latent_id), option);
+        else                                        MCM_Journal_t::On_Option_Menu_Open(std::move(latent_id), option);
 
         return true;
     }
@@ -243,8 +297,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Menu_Accept(std::move(latent_id), option, index);
-        else                                        MCM_Active_t::On_Option_Menu_Accept(std::move(latent_id), option, index);
+        if (page == Const::String::JOURNAL_QUESTS)  MCM_Journal_t::On_Option_Menu_Accept(std::move(latent_id), option, index);
+        else                                        MCM_Journal_t::On_Option_Menu_Accept(std::move(latent_id), option, index);
 
         return true;
     }
@@ -255,8 +309,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Slider_Open(std::move(latent_id), option);
-        else                                        MCM_Active_t::On_Option_Slider_Open(std::move(latent_id), option);
+        if (page == Const::String::JOURNAL_QUESTS)  MCM_Journal_t::On_Option_Slider_Open(std::move(latent_id), option);
+        else                                        MCM_Journal_t::On_Option_Slider_Open(std::move(latent_id), option);
 
         return true;
     }
@@ -267,8 +321,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Slider_Accept(std::move(latent_id), option, value);
-        else                                        MCM_Active_t::On_Option_Slider_Accept(std::move(latent_id), option, value);
+        if (page == Const::String::JOURNAL_QUESTS)  MCM_Journal_t::On_Option_Slider_Accept(std::move(latent_id), option, value);
+        else                                        MCM_Journal_t::On_Option_Slider_Accept(std::move(latent_id), option, value);
 
         return true;
     }
@@ -279,8 +333,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Input_Accept(std::move(latent_id), option, value);
-        else                                        MCM_Active_t::On_Option_Input_Accept(std::move(latent_id), option, value);
+        if (page == Const::String::JOURNAL_QUESTS)  MCM_Journal_t::On_Option_Input_Accept(std::move(latent_id), option, value);
+        else                                        MCM_Journal_t::On_Option_Input_Accept(std::move(latent_id), option, value);
 
         return true;
     }
@@ -291,8 +345,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Keymap_Change(std::move(latent_id), option, key, conflict, mod);
-        else                                        MCM_Active_t::On_Option_Keymap_Change(std::move(latent_id), option, key, conflict, mod);
+        if (page == Const::String::JOURNAL_QUESTS)  MCM_Journal_t::On_Option_Keymap_Change(std::move(latent_id), option, key, conflict, mod);
+        else                                        MCM_Journal_t::On_Option_Keymap_Change(std::move(latent_id), option, key, conflict, mod);
 
         return true;
     }
@@ -303,8 +357,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Default(std::move(latent_id), option);
-        else                                        MCM_Active_t::On_Option_Default(std::move(latent_id), option);
+        if (page == Const::String::JOURNAL_QUESTS)  MCM_Journal_t::On_Option_Default(std::move(latent_id), option);
+        else                                        MCM_Journal_t::On_Option_Default(std::move(latent_id), option);
 
         return true;
     }
@@ -315,8 +369,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Highlight(std::move(latent_id), option);
-        else                                        MCM_Active_t::On_Option_Highlight(std::move(latent_id), option);
+        if (page == Const::String::JOURNAL_QUESTS)  MCM_Journal_t::On_Option_Highlight(std::move(latent_id), option);
+        else                                        MCM_Journal_t::On_Option_Highlight(std::move(latent_id), option);
 
         return true;
     }

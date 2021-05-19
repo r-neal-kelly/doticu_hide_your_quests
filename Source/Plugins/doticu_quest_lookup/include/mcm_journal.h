@@ -15,7 +15,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     class MCM_t;
 
-    class MCM_Active_t :
+    class MCM_Journal_t :
         public Quest_t
     {
     public:
@@ -23,6 +23,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         static constexpr Int_t                  DEFAULT_LIST_CURRENT_PAGE_INDEX = 0;
 
+        static constexpr size_t                 LIST_HEADERS_PER_PAGE           = 6;
         static constexpr size_t                 LIST_ITEMS_PER_PAGE             = 18;
 
     public:
@@ -66,6 +67,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             Int_t   options;
             Int_t   previous;
             Int_t   next;
+            Int_t   back;
+
+            Int_t   show_objectives;
 
         public:
             Option_State_t();
@@ -81,6 +85,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         public:
             std::unordered_set<Quest_Objective_t*>  hidden_objectives;
 
+            Vector_t<some<Quest_t*>>                quests;
+            Bool_t                                  do_update_quests;
+
         public:
             List_State_t();
             List_State_t(const List_State_t& other) = delete;
@@ -94,10 +101,16 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             void    Write();
 
         public:
-            Int_t                               Page_Count(size_t quest_count);
+            Int_t                               Page_Count(size_t item_count);
             Int_t                               Current_Page_Index(Int_t page_count);
+            void                                Go_To_Previous_Page(size_t item_count);
+            void                                Go_To_Next_Page(size_t item_count);
+            void                                Go_To_Page(maybe<Quest_t*> item);
 
-            Vector_t<some<Quest_t*>>            Quests();
+            Vector_t<some<Quest_t*>>&           Quests();
+            size_t                              Quest_Count();
+            void                                Queue_Quests_Update();
+
             Vector_t<some<Quest_Objective_t*>>  Objectives(some<Quest_t*> quest);
 
             Bool_t                              Is_Objective_Hidable(some<Quest_Objective_t*> objective);
@@ -110,15 +123,41 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             void                                Enforce_Objectives();
         };
 
+        class Item_State_t
+        {
+        public:
+            Vector_t<some<Quest_Objective_t*>>  objectives;
+            Bool_t                              do_update_objectives;
+
+        public:
+            Item_State_t();
+            Item_State_t(const Item_State_t& other) = delete;
+            Item_State_t(Item_State_t&& other) noexcept = delete;
+            Item_State_t& operator =(const Item_State_t& other) = delete;
+            Item_State_t& operator =(Item_State_t&& other) noexcept = delete;
+            ~Item_State_t();
+
+        public:
+            maybe<Quest_t*> Current();
+            void            Current(maybe<Quest_t*> item);
+            maybe<Quest_t*> Go_To_Previous_Item();
+            maybe<Quest_t*> Go_To_Next_Item();
+
+            Vector_t<some<Quest_Objective_t*>>& Objectives();
+            size_t                              Objective_Count();
+            void                                Queue_Objectives_Update();
+        };
+
     public:
         static Save_State_t     save_state;
         static Option_State_t   option_state;
         static List_State_t     list_state;
+        static Item_State_t     item_state;
 
     public:
         static some<MCM_t*>             MCM();
 
-        static some<MCM_Active_t*>      Self();
+        static some<MCM_Journal_t*>     Self();
         static String_t                 Class_Name();
         static some<Virtual::Class_t*>  Class();
         static some<Virtual::Object_t*> Object();
@@ -127,9 +166,11 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         static void Reset_Save_State();
         static void Reset_Option_State();
         static void Reset_List_State();
+        static void Reset_Item_State();
 
     public:
         static some<MCM_View_e> Current_View();
+        static void             Current_View(some<MCM_View_e> view);
 
     public:
         static void On_Register(some<Virtual::Machine_t*> v_machine);
@@ -158,8 +199,10 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         static void On_Option_Highlight(Virtual::Latent_ID_t&& latent_id, Int_t option);
 
         static void On_Page_Open_List(Virtual::Latent_ID_t&& latent_id, Bool_t is_refresh);
+        static void On_Option_Select_List(Virtual::Latent_ID_t&& latent_id, Int_t option);
 
         static void On_Page_Open_Item(Virtual::Latent_ID_t&& latent_id, Bool_t is_refresh);
+        static void On_Option_Select_Item(Virtual::Latent_ID_t&& latent_id, Int_t option);
     };
 
 }}

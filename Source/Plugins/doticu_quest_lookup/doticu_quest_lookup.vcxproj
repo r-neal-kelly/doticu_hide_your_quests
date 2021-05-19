@@ -116,13 +116,13 @@
     <ClInclude Include="include\enum_mcm_view.h" />
     <ClInclude Include="include\intrinsic.h" />
     <ClInclude Include="include\mcm.h" />
-    <ClInclude Include="include\mcm_active.h" />
+    <ClInclude Include="include\mcm_journal.h" />
     <ClInclude Include="include\plugin.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\consts.cpp" />
     <ClCompile Include="src\mcm.cpp" />
-    <ClCompile Include="src\mcm_active.cpp" />
+    <ClCompile Include="src\mcm_journal.cpp" />
     <ClCompile Include="src\plugin.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

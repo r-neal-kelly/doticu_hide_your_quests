@@ -27,7 +27,7 @@
     <ClInclude Include="include\consts.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\mcm_active.h">
+    <ClInclude Include="include\mcm_journal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\enum_mcm_view.h">
@@ -44,7 +44,7 @@
     <ClCompile Include="src\consts.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\mcm_active.cpp">
+    <ClCompile Include="src\mcm_journal.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

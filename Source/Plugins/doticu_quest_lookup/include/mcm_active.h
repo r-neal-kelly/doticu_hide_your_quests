@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <unordered_set>
+
 #include "doticu_skylib/quest.h"
 #include "doticu_skylib/virtual_latent_id.h"
 
@@ -17,19 +19,23 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         public Quest_t
     {
     public:
-        static constexpr MCM_View_e::value_type DEFAULT_CURRENT_VIEW        = MCM_View_e::LIST;
+        static constexpr MCM_View_e::value_type DEFAULT_CURRENT_VIEW            = MCM_View_e::LIST;
 
-        static constexpr Int_t                  DEFAULT_LIST_CURRENT_PAGE   = 0;
+        static constexpr Int_t                  DEFAULT_LIST_CURRENT_PAGE_INDEX = 0;
+
+        static constexpr size_t                 LIST_ITEMS_PER_PAGE             = 18;
 
     public:
         class Save_State_t
         {
         public:
-            maybe<MCM_View_e>   current_view;
+            maybe<MCM_View_e>           current_view;
 
-            Int_t               list_current_page;
+            Int_t                       list_current_page_index;
+            Vector_t<Int_t>             list_hidden_objectives;
+            Vector_t<maybe<Quest_t*>>   list_objective_quests;
 
-            maybe<Quest_t*>     item_current;
+            maybe<Quest_t*>             item_current;
 
         public:
             Save_State_t();
@@ -40,11 +46,13 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             ~Save_State_t();
 
         public:
-            Virtual::Variable_tt<String_t>&         Current_View();
+            Virtual::Variable_tt<String_t>&                     Current_View();
 
-            Virtual::Variable_tt<Int_t>&            List_Current_Page();
+            Virtual::Variable_tt<Int_t>&                        List_Current_Page_Index();
+            Virtual::Variable_tt<Vector_t<Int_t>>&              List_Hidden_Objectives();
+            Virtual::Variable_tt<Vector_t<maybe<Quest_t*>>>&    List_Objective_Quests();
 
-            Virtual::Variable_tt<maybe<Quest_t*>>&  Item_Current();
+            Virtual::Variable_tt<maybe<Quest_t*>>&              Item_Current();
 
         public:
             void    Read();
@@ -71,7 +79,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         class List_State_t
         {
         public:
-            Vector_t<some<Quest_t*>>    items;
+            std::unordered_set<Quest_Objective_t*>  hidden_objectives;
 
         public:
             List_State_t();
@@ -82,7 +90,24 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             ~List_State_t();
 
         public:
-            Vector_t<some<Quest_t*>>&   Items();
+            void    Read();
+            void    Write();
+
+        public:
+            Int_t                               Page_Count(size_t quest_count);
+            Int_t                               Current_Page_Index(Int_t page_count);
+
+            Vector_t<some<Quest_t*>>            Quests();
+            Vector_t<some<Quest_Objective_t*>>  Objectives(some<Quest_t*> quest);
+
+            Bool_t                              Is_Objective_Hidable(some<Quest_Objective_t*> objective);
+            Bool_t                              Is_Objective_Shown(some<Quest_Objective_t*> objective);
+            Bool_t                              Is_Objective_Hidden(some<Quest_Objective_t*> objective);
+
+            void                                Show_Objective(some<Quest_Objective_t*> objective);
+            void                                Hide_Objective(some<Quest_Objective_t*> objective);
+
+            void                                Enforce_Objectives();
         };
 
     public:

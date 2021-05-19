@@ -82,6 +82,20 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         }
     }
 
+    std::string MCM_t::Page_Title(const char* title, Int_t item_count, Int_t page_index, Int_t page_count)
+    {
+        std::string items =
+            std::string(title) + ": " +
+            std::to_string(item_count);
+
+        std::string pages =
+            std::string("Page") + ": " +
+            std::to_string(page_index + 1) + "/" +
+            std::to_string(page_count);
+
+        return items + "               " + pages;
+    }
+
     void MCM_t::On_Register(some<Virtual::Machine_t*> v_machine)
     {
         using type_name = MCM_t;
@@ -170,7 +184,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         Vector_t<String_t> pages;
         pages.reserve(1);
-        pages.push_back(Const::String::ACTIVE);
+        pages.push_back(Const::String::ACTIVE_QUESTS);
         Pages() = pages;
 
         MCM_Active_t::On_Config_Open();
@@ -193,7 +207,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         Bool_t is_refresh = Current_Page(page);
 
-        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Page_Open(std::move(latent_id), is_refresh);
+        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Page_Open(std::move(latent_id), is_refresh);
+        else                                        MCM_Active_t::On_Page_Open(std::move(latent_id), is_refresh);
 
         return true;
     }
@@ -204,7 +219,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Select(std::move(latent_id), option);
+        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Select(std::move(latent_id), option);
+        else                                        MCM_Active_t::On_Option_Select(std::move(latent_id), option);
 
         return true;
     }
@@ -215,7 +231,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Menu_Open(std::move(latent_id), option);
+        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Menu_Open(std::move(latent_id), option);
+        else                                        MCM_Active_t::On_Option_Menu_Open(std::move(latent_id), option);
 
         return true;
     }
@@ -226,7 +243,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Menu_Accept(std::move(latent_id), option, index);
+        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Menu_Accept(std::move(latent_id), option, index);
+        else                                        MCM_Active_t::On_Option_Menu_Accept(std::move(latent_id), option, index);
 
         return true;
     }
@@ -237,7 +255,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Slider_Open(std::move(latent_id), option);
+        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Slider_Open(std::move(latent_id), option);
+        else                                        MCM_Active_t::On_Option_Slider_Open(std::move(latent_id), option);
 
         return true;
     }
@@ -248,7 +267,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Slider_Accept(std::move(latent_id), option, value);
+        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Slider_Accept(std::move(latent_id), option, value);
+        else                                        MCM_Active_t::On_Option_Slider_Accept(std::move(latent_id), option, value);
 
         return true;
     }
@@ -259,7 +279,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Input_Accept(std::move(latent_id), option, value);
+        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Input_Accept(std::move(latent_id), option, value);
+        else                                        MCM_Active_t::On_Option_Input_Accept(std::move(latent_id), option, value);
 
         return true;
     }
@@ -270,7 +291,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Keymap_Change(std::move(latent_id), option, key, conflict, mod);
+        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Keymap_Change(std::move(latent_id), option, key, conflict, mod);
+        else                                        MCM_Active_t::On_Option_Keymap_Change(std::move(latent_id), option, key, conflict, mod);
 
         return true;
     }
@@ -281,7 +303,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Default(std::move(latent_id), option);
+        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Default(std::move(latent_id), option);
+        else                                        MCM_Active_t::On_Option_Default(std::move(latent_id), option);
 
         return true;
     }
@@ -292,7 +315,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         String_t page = save_state.current_page;
 
-        if (page == Const::String::ACTIVE)  MCM_Active_t::On_Option_Highlight(std::move(latent_id), option);
+        if (page == Const::String::ACTIVE_QUESTS)   MCM_Active_t::On_Option_Highlight(std::move(latent_id), option);
+        else                                        MCM_Active_t::On_Option_Highlight(std::move(latent_id), option);
 
         return true;
     }

@@ -2,6 +2,8 @@
     Copyright © 2020 r-neal-kelly, aka doticu
 */
 
+#include "doticu_skylib/game.h"
+#include "doticu_skylib/math.h"
 #include "doticu_skylib/player.h"
 #include "doticu_skylib/quest_objective.h"
 #include "doticu_skylib/virtual_macros.h"
@@ -15,7 +17,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     MCM_Active_t::Save_State_t::Save_State_t() :
         current_view(DEFAULT_CURRENT_VIEW),
 
-        list_current_page(DEFAULT_LIST_CURRENT_PAGE),
+        list_current_page_index(DEFAULT_LIST_CURRENT_PAGE_INDEX),
+        list_objective_quests(),
+        list_hidden_objectives(),
 
         item_current(none<Quest_t*>())
     {
@@ -30,9 +34,19 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         DEFINE_VARIABLE_REFERENCE(String_t, "current_view");
     }
 
-    Virtual::Variable_tt<Int_t>& MCM_Active_t::Save_State_t::List_Current_Page()
+    Virtual::Variable_tt<Int_t>& MCM_Active_t::Save_State_t::List_Current_Page_Index()
     {
-        DEFINE_VARIABLE_REFERENCE(Int_t, "list_current_page");
+        DEFINE_VARIABLE_REFERENCE(Int_t, "list_current_page_index");
+    }
+
+    Virtual::Variable_tt<Vector_t<Int_t>>& MCM_Active_t::Save_State_t::List_Hidden_Objectives()
+    {
+        DEFINE_VARIABLE_REFERENCE(Vector_t<Int_t>, "list_hidden_objectives");
+    }
+
+    Virtual::Variable_tt<Vector_t<maybe<Quest_t*>>>& MCM_Active_t::Save_State_t::List_Objective_Quests()
+    {
+        DEFINE_VARIABLE_REFERENCE(Vector_t<maybe<Quest_t*>>, "list_objective_quests");
     }
 
     Virtual::Variable_tt<maybe<Quest_t*>>& MCM_Active_t::Save_State_t::Item_Current()
@@ -44,16 +58,26 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
         this->current_view = MCM_View_e::From_String(static_cast<String_t>(Current_View()));
 
-        this->list_current_page = List_Current_Page();
+        this->list_current_page_index = List_Current_Page_Index();
+        this->list_hidden_objectives = List_Hidden_Objectives();
+        this->list_objective_quests = List_Objective_Quests();
 
         this->item_current = Item_Current();
+
+        {
+            size_t max = Math_t::Max(this->list_objective_quests.size(), this->list_hidden_objectives.size());
+            this->list_hidden_objectives.resize(max, -1);
+            this->list_objective_quests.resize(max, none<Quest_t*>());
+        }
     }
 
     void MCM_Active_t::Save_State_t::Write()
     {
         Current_View() = this->current_view().As_String();
 
-        List_Current_Page() = this->list_current_page;
+        List_Current_Page_Index() = this->list_current_page_index;
+        List_Hidden_Objectives() = this->list_hidden_objectives;
+        List_Objective_Quests() = this->list_objective_quests;
 
         Item_Current() = this->item_current;
     }
@@ -71,7 +95,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     }
 
     MCM_Active_t::List_State_t::List_State_t() :
-        items()
+        hidden_objectives()
     {
     }
 
@@ -79,11 +103,173 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
     }
 
-    Vector_t<some<Quest_t*>>& MCM_Active_t::List_State_t::Items()
+    void MCM_Active_t::List_State_t::Read()
     {
-        this->items.clear();
+        const size_t hidden_objective_count = save_state.list_hidden_objectives.size();
+        this->hidden_objectives.reserve(hidden_objective_count);
+        this->hidden_objectives.clear();
 
-        return this->items;
+        for (size_t idx = 0, end = hidden_objective_count; idx < end; idx += 1) {
+            maybe<Quest_t*> quest = save_state.list_objective_quests[idx];
+            if (quest) {
+                maybe<Quest_Objective_t*> quest_objective = quest->Objective(save_state.list_hidden_objectives[idx]);
+                if (quest_objective) {
+                    this->hidden_objectives.insert(quest_objective());
+                }
+            }
+        }
+    }
+
+    void MCM_Active_t::List_State_t::Write()
+    {
+        const size_t hidden_objective_count = this->hidden_objectives.size();
+        save_state.list_hidden_objectives.reserve(hidden_objective_count);
+        save_state.list_objective_quests.reserve(hidden_objective_count);
+        save_state.list_hidden_objectives.clear();
+        save_state.list_objective_quests.clear();
+
+        for (auto it = this->hidden_objectives.begin(), end = this->hidden_objectives.end(); it != end; ++it) {
+            maybe<Quest_Objective_t*> quest_objective = *it;
+            if (quest_objective && quest_objective->quest) {
+                save_state.list_hidden_objectives.push_back(quest_objective->index);
+                save_state.list_objective_quests.push_back(quest_objective->quest);
+            }
+        }
+    }
+
+    Int_t MCM_Active_t::List_State_t::Page_Count(size_t quest_count)
+    {
+        return static_cast<Int_t>(ceilf(
+            static_cast<Float_t>(quest_count) / static_cast<Float_t>(LIST_ITEMS_PER_PAGE)
+        ));
+    }
+
+    Int_t MCM_Active_t::List_State_t::Current_Page_Index(Int_t page_count)
+    {
+        if (save_state.list_current_page_index < 0) {
+            save_state.list_current_page_index = 0;
+        } else if (save_state.list_current_page_index >= page_count) {
+            save_state.list_current_page_index = page_count - 1;
+        }
+        return save_state.list_current_page_index;
+    }
+
+    Vector_t<some<Quest_t*>> MCM_Active_t::List_State_t::Quests()
+    {
+        Vector_t<some<Quest_t*>> results;
+
+        Vector_t<some<Quest_Objective_t*>> quest_objectives = Player_t::Self()->Quest_Objectives();
+        for (size_t idx = 0, end = quest_objectives.size(); idx < end; idx += 1) {
+            some<Quest_Objective_t*> quest_objective = quest_objectives[idx];
+            if (quest_objective->quest && !results.Has(quest_objective->quest)) {
+                results.push_back(quest_objective->quest);
+            }
+        }
+
+        // we need to filter this
+        
+        // we need to sort this
+
+        return results;
+    }
+
+    Vector_t<some<Quest_Objective_t*>> MCM_Active_t::List_State_t::Objectives(some<Quest_t*> quest)
+    {
+        class Filter_t :
+            public Filter_i<some<Quest_Objective_t*>>
+        {
+        public:
+            List_State_t&   self;
+            some<Quest_t*>  quest;
+
+        public:
+            Filter_t(List_State_t& self, some<Quest_t*> quest) :
+                self(self), quest(quest)
+            {
+            }
+
+        public:
+            virtual Bool_t operator ()(some<Quest_Objective_t*> quest_objective) override
+            {
+                return quest_objective->quest == this->quest && self.Is_Objective_Hidable(quest_objective);
+            }
+        };
+
+        SKYLIB_ASSERT_SOME(quest);
+
+        Filter_t filter(*this, quest);
+        Vector_t<some<Quest_Objective_t*>> objectives = Player_t::Self()->Quest_Objectives(filter);
+
+        // we need to filter this
+        
+        // we need to sort this
+
+        return objectives;
+    }
+
+    Bool_t MCM_Active_t::List_State_t::Is_Objective_Hidable(some<Quest_Objective_t*> objective)
+    {
+        return
+            objective->state == Quest_Objective_State_e::COMPLETED_AND_DISPLAYED ||
+            objective->state == Quest_Objective_State_e::FAILED_AND_DISPLAYED ||
+            objective->state == Quest_Objective_State_e::DISPLAYED;
+    }
+
+    Bool_t MCM_Active_t::List_State_t::Is_Objective_Shown(some<Quest_Objective_t*> objective)
+    {
+        SKYLIB_ASSERT_SOME(objective);
+
+        return this->hidden_objectives.count(objective()) < 1;
+    }
+
+    Bool_t MCM_Active_t::List_State_t::Is_Objective_Hidden(some<Quest_Objective_t*> objective)
+    {
+        SKYLIB_ASSERT_SOME(objective);
+
+        return this->hidden_objectives.count(objective()) > 0;
+    }
+
+    void MCM_Active_t::List_State_t::Show_Objective(some<Quest_Objective_t*> objective)
+    {
+        this->hidden_objectives.erase(objective());
+    }
+
+    void MCM_Active_t::List_State_t::Hide_Objective(some<Quest_Objective_t*> objective)
+    {
+        this->hidden_objectives.insert(objective());
+    }
+
+    void MCM_Active_t::List_State_t::Enforce_Objectives()
+    {
+        class Iterator_t :
+            public Iterator_i<some<Player_Objective_t*>>
+        {
+        public:
+            List_State_t& self;
+
+        public:
+            Iterator_t(List_State_t& self) :
+                self(self)
+            {
+            }
+
+        public:
+            virtual Iterator_e operator ()(some<Player_Objective_t*> player_objective) override
+            {
+                if (player_objective->objective) {
+                    if (self.Is_Objective_Hidable(player_objective->objective()) &&
+                        self.Is_Objective_Hidden(player_objective->objective())) {
+                        player_objective->state = Quest_Objective_State_e::DORMANT;
+                    } else {
+                        player_objective->state = player_objective->objective->state;
+                    }
+                }
+                return Iterator_e::CONTINUE;
+            }
+        };
+
+        Iterator_t iterator(*this);
+        Player_t::Self()->Iterate_Player_Objectives(iterator);
     }
 
     MCM_Active_t::Save_State_t      MCM_Active_t::save_state;
@@ -169,10 +355,13 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     void MCM_Active_t::On_After_New_Game()
     {
         Reset_Save_State();
+        Reset_Option_State();
+        Reset_List_State();
     }
 
     void MCM_Active_t::On_Before_Save_Game()
     {
+        list_state.Write();
         save_state.Write();
     }
 
@@ -187,8 +376,11 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     void MCM_Active_t::On_After_Load_Game()
     {
         Reset_Save_State();
+        Reset_Option_State();
+        Reset_List_State();
 
         save_state.Read();
+        list_state.Read();
     }
 
     void MCM_Active_t::On_Update_Version(const Version_t<u16> version_to_update)
@@ -255,39 +447,48 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         mcm->Current_Cursor_Position() = 0;
         mcm->Current_Cursor_Mode() = doticu_mcmlib::Cursor_e::LEFT_TO_RIGHT;
 
-        Vector_t<some<Quest_t*>>& items = list_state.Items();
+        Vector_t<some<Quest_t*>> quests = list_state.Quests();
+        size_t quest_count = quests.size();
+        if (quest_count > 0) {
+            Int_t page_count = list_state.Page_Count(quest_count);
+            Int_t page_index = list_state.Current_Page_Index(page_count);
 
-        //temp
-        // we shall lock using the global form hash map and then we can do what we want to player structure.
-        some<Player_t*> player = Player_t::Self();
-        size_t alterable_count = 0;
-        for (size_t idx = 0, end = player->objectives.Count(); idx < end; idx += 1) {
-            Player_Objective_t& objective = player->objectives[idx];
-            if (objective.objective) {
-                // COMPLETED_AND_DISPLAYED's, FAILED_AND_DISPLAYED's, and DISPLAYED's two states naturally match.
-                // this means we can just look at the actual objective's state to determine if this is one we can alter.
-                // And of course, we should have one source of truth, but we can't depend on the player objectives
-                // to tell us whether or not it is hidden, only that it is on the player and what deeper state it has.
-                // we must keep the state of the shallow state ourselves, perhaps in a hash map, but a vector is probably good enough.
-                // We need to be able to add and remove from our state to match the player objectives, if it no longer exists
-                // or if it has a different deeper state, which we shall not change.
-                // when do we update state? everytime we read from player?
-                if (objective.objective->state == Quest_Objective_State_e::COMPLETED_AND_DISPLAYED ||
-                    objective.objective->state == Quest_Objective_State_e::FAILED_AND_DISPLAYED ||
-                    objective.objective->state == Quest_Objective_State_e::DISPLAYED) {
-                    alterable_count += 1;
-                    objective.Log(SKYLIB_TAB);
-                    objective.state = Quest_Objective_State_e::DORMANT;
-                    // for our state, we need to store quest, objective index, instance id, and whether or not it's hidden.
-                    // the only one I question is instance id. maybe we should just operate on all of them in unison.
-                }
+            mcm->Title_Text(mcm->Page_Title(Const::String::$ACTIVE_QUESTS, quest_count, page_index, page_count));
+
+            option_state.filter = mcm->Add_Empty_Option();//Filter_Option() = mcm->Add_Text_Option(Main_t::CENTER_FILTER, Main_t::_NONE_);
+            option_state.options = mcm->Add_Empty_Option();//Options_Option() = mcm->Add_Text_Option(Main_t::CENTER_OPTIONS, Main_t::_NONE_);
+            if (page_count > 1) {
+                option_state.previous = mcm->Add_Empty_Option();//mcm->Add_Text_Option(Main_t::CENTER_GO_TO_PREVIOUS_PAGE, Main_t::_NONE_);
+                option_state.next = mcm->Add_Empty_Option();//mcm->Add_Text_Option(Main_t::CENTER_GO_TO_NEXT_PAGE, Main_t::_NONE_);
+            } else {
+                option_state.previous = mcm->Add_Empty_Option();//mcm->Add_Text_Option(Main_t::CENTER_GO_TO_PREVIOUS_PAGE, Main_t::_NONE_, Flag_e::DISABLE);
+                option_state.next = mcm->Add_Empty_Option();//mcm->Add_Text_Option(Main_t::CENTER_GO_TO_NEXT_PAGE, Main_t::_NONE_, Flag_e::DISABLE);
             }
-        }
-        _MESSAGE("alterable player_objective_count: %u", alterable_count);
-        // we'll use a vector. there's not enough elements to warrant all the trouble of using a hash map and filtering and sorting it.
-        // I do think we should have the quest on the upper level and it's item view will have all of its objectives.
 
-        mcm->Title_Text(Const::String::ACTIVE);
+            mcm->Add_Header_Option("");
+            mcm->Add_Header_Option("");
+
+            Int_t idx = LIST_ITEMS_PER_PAGE * page_index;
+            Int_t end = idx + LIST_ITEMS_PER_PAGE;
+            if (end > quest_count) {
+                end = quest_count;
+            }
+            for (; idx < end; idx += 1) {
+                some<Quest_t*> quest = quests[idx];
+                mcm->Add_Text_Option(quest->Any_Name(), "...");
+            }
+        } else {
+            mcm->Title_Text(mcm->Page_Title(Const::String::ACTIVE_QUESTS, 0, 0, 1));
+
+            /*
+            Filter_Option() = mcm->Add_Text_Option(Main_t::CENTER_FILTER, Main_t::_NONE_);
+            Options_Option() = mcm->Add_Text_Option(Main_t::CENTER_OPTIONS, Main_t::_NONE_);
+            Previous_Page_Option() = mcm->Add_Text_Option(Main_t::CENTER_GO_TO_PREVIOUS_PAGE, Main_t::_NONE_, Flag_e::DISABLE);
+            Next_Page_Option() = mcm->Add_Text_Option(Main_t::CENTER_GO_TO_NEXT_PAGE, Main_t::_NONE_, Flag_e::DISABLE);
+
+            mcm->Add_Header_Option(Main_t::NO_LOADED_REFERENCES);
+            */
+        }
     }
 
     void MCM_Active_t::On_Page_Open_Item(Virtual::Latent_ID_t&& latent_id, Bool_t is_refresh)

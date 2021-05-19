@@ -17,7 +17,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         public doticu_mcmlib::Config_Base_t
     {
     public:
-        static constexpr const char*    DEFAULT_CURRENT_PAGE    = Const::String::ACTIVE;
+        static constexpr const char*    DEFAULT_CURRENT_PAGE    = Const::String::ACTIVE_QUESTS;
 
     public:
         class Save_State_t
@@ -54,7 +54,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         static void Reset_Save_State();
 
     public:
-        static Bool_t   Current_Page(String_t& result);
+        static Bool_t       Current_Page(String_t& result);
+
+        static std::string  Page_Title(const char* title, Int_t item_count, Int_t page_index, Int_t page_count);
 
     public:
         static void On_Register(some<Virtual::Machine_t*> v_machine);

@@ -14,11 +14,85 @@
 
 namespace doticu_skylib { namespace doticu_quest_lookup {
 
+    Objective_t::Objective_t(some<Quest_Objective_t*> objective, u32 instance_id) :
+        objective(objective),
+        instance_id(instance_id),
+        display_text(Player_Objective_t::Parse_Display_Text(objective, instance_id))
+    {
+    }
+
+    Objective_t::Objective_t(some<Player_Objective_t*> player_objective) :
+        objective(player_objective->objective()),
+        instance_id(player_objective->instance_id),
+        display_text(Player_Objective_t::Parse_Display_Text(objective, instance_id))
+    {
+    }
+
+    Objective_t::Objective_t(const Objective_t& other) :
+        objective(other.objective),
+        instance_id(other.instance_id),
+        display_text(other.display_text)
+    {
+    }
+
+    Objective_t::Objective_t(Objective_t&& other) noexcept :
+        objective(std::move(other.objective)),
+        instance_id(std::move(other.instance_id)),
+        display_text(std::move(other.display_text))
+    {
+    }
+
+    Objective_t& Objective_t::operator =(const Objective_t& other)
+    {
+        if (this != std::addressof(other)) {
+            this->objective = other.objective;
+            this->instance_id = other.instance_id;
+            this->display_text = other.display_text;
+        }
+        return *this;
+    }
+
+    Objective_t& Objective_t::operator =(Objective_t&& other) noexcept
+    {
+        if (this != std::addressof(other)) {
+            this->objective = std::move(other.objective);
+            this->instance_id = std::move(other.instance_id);
+            this->display_text = std::move(other.display_text);
+        }
+        return *this;
+    }
+
+    Objective_t::~Objective_t()
+    {
+    }
+
+    Objective_t::operator String_t() const
+    {
+        return this->display_text;
+    }
+
+    Bool_t operator ==(const Objective_t& a, const Objective_t& b)
+    {
+        return a.objective == b.objective && a.instance_id == b.instance_id;
+    }
+
+    Bool_t operator !=(const Objective_t& a, const Objective_t& b)
+    {
+        return !operator ==(a, b);
+    }
+
+    size_t Objective_hash::operator ()(const Objective_t& key) const
+    {
+        //return CRC32_Hash_t::Hash<Objective_t>(key);
+        return CRC32_Hash_t::Hash<Quest_Objective_t*>(key.objective());
+    }
+
     MCM_Journal_t::Save_State_t::Save_State_t() :
         current_view(DEFAULT_CURRENT_VIEW),
 
         list_current_page_index(DEFAULT_LIST_CURRENT_PAGE_INDEX),
         list_objective_quests(),
+        list_objective_instance_ids(),
         list_hidden_objectives(),
 
         item_current(none<Quest_t*>())
@@ -44,6 +118,11 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         DEFINE_VARIABLE_REFERENCE(Vector_t<Int_t>, "list_hidden_objectives");
     }
 
+    Virtual::Variable_tt<Vector_t<Int_t>>& MCM_Journal_t::Save_State_t::List_Objective_Instance_IDs()
+    {
+        DEFINE_VARIABLE_REFERENCE(Vector_t<Int_t>, "list_objective_instance_ids");
+    }
+
     Virtual::Variable_tt<Vector_t<maybe<Quest_t*>>>& MCM_Journal_t::Save_State_t::List_Objective_Quests()
     {
         DEFINE_VARIABLE_REFERENCE(Vector_t<maybe<Quest_t*>>, "list_objective_quests");
@@ -60,14 +139,15 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         this->list_current_page_index = List_Current_Page_Index();
         this->list_hidden_objectives = List_Hidden_Objectives();
+        this->list_objective_instance_ids = List_Objective_Instance_IDs();
         this->list_objective_quests = List_Objective_Quests();
 
         this->item_current = Item_Current();
 
         {
-            size_t max = Math_t::Max(this->list_objective_quests.size(), this->list_hidden_objectives.size());
-            this->list_hidden_objectives.resize(max, -1);
-            this->list_objective_quests.resize(max, none<Quest_t*>());
+            size_t hidden_objective_count = this->list_hidden_objectives.size();
+            this->list_objective_instance_ids.resize(hidden_objective_count, -1);
+            this->list_objective_quests.resize(hidden_objective_count, none<Quest_t*>());
         }
     }
 
@@ -77,6 +157,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         List_Current_Page_Index() = this->list_current_page_index;
         List_Hidden_Objectives() = this->list_hidden_objectives;
+        List_Objective_Instance_IDs() = this->list_objective_instance_ids;
         List_Objective_Quests() = this->list_objective_quests;
 
         Item_Current() = this->item_current;
@@ -118,7 +199,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             if (quest) {
                 maybe<Quest_Objective_t*> quest_objective = quest->Objective(save_state.list_hidden_objectives[idx]);
                 if (quest_objective) {
-                    this->hidden_objectives.insert(quest_objective());
+                    u32 instance_id = save_state.list_objective_instance_ids[idx];
+                    this->hidden_objectives.insert({ quest_objective(), instance_id });
                 }
             }
         }
@@ -128,15 +210,18 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
         const size_t hidden_objective_count = this->hidden_objectives.size();
         save_state.list_hidden_objectives.reserve(hidden_objective_count);
+        save_state.list_objective_instance_ids.reserve(hidden_objective_count);
         save_state.list_objective_quests.reserve(hidden_objective_count);
         save_state.list_hidden_objectives.clear();
+        save_state.list_objective_instance_ids.clear();
         save_state.list_objective_quests.clear();
 
         for (auto it = this->hidden_objectives.begin(), end = this->hidden_objectives.end(); it != end; ++it) {
-            maybe<Quest_Objective_t*> quest_objective = *it;
-            if (quest_objective && quest_objective->quest) {
-                save_state.list_hidden_objectives.push_back(quest_objective->index);
-                save_state.list_objective_quests.push_back(quest_objective->quest);
+            Objective_t objective = *it;
+            if (objective.objective->quest) {
+                save_state.list_hidden_objectives.push_back(objective.objective->index);
+                save_state.list_objective_instance_ids.push_back(objective.instance_id);
+                save_state.list_objective_quests.push_back(objective.objective->quest);
             }
         }
     }
@@ -240,83 +325,97 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         this->do_update_quests = true;
     }
 
-    Vector_t<some<Quest_Objective_t*>> MCM_Journal_t::List_State_t::Objectives(some<Quest_t*> quest)
+    Vector_t<Objective_t> MCM_Journal_t::List_State_t::Objectives(some<Quest_t*> quest)
     {
-        class Filter_t :
-            public Filter_i<some<Quest_Objective_t*>>
+        class Iterator_t :
+            public Iterator_i<some<Player_Objective_t*>>
         {
         public:
-            List_State_t&   self;
-            some<Quest_t*>  quest;
+            List_State_t&           self;
+            some<Quest_t*>          quest;
+            Vector_t<Objective_t>&  results;
 
         public:
-            Filter_t(List_State_t& self, some<Quest_t*> quest) :
-                self(self), quest(quest)
+            Iterator_t(List_State_t& self, some<Quest_t*> quest, Vector_t<Objective_t>& results) :
+                self(self), quest(quest), results(results)
             {
             }
 
         public:
-            virtual Bool_t operator ()(some<Quest_Objective_t*> quest_objective) override
+            virtual Iterator_e operator ()(some<Player_Objective_t*> player_objective) override
             {
-                return quest_objective->quest == this->quest && self.Is_Objective_Hidable(quest_objective);
+                if (player_objective->objective && player_objective->objective->quest == this->quest) {
+                    Objective_t objective = player_objective;
+                    if (self.Is_Objective_Hidable(objective)) {
+                        results.push_back(objective);
+                    }
+                }
+                return Iterator_e::CONTINUE;
             }
         };
 
         SKYLIB_ASSERT_SOME(quest);
 
-        Filter_t filter(*this, quest);
-        Vector_t<some<Quest_Objective_t*>> objectives = Player_t::Self()->Quest_Objectives(filter);
+        Vector_t<Objective_t> results;
+        Iterator_t iterator(*this, quest, results);
+        Read_Locker_t locker(Game_t::Form_IDs_To_Forms_Lock());
+        Player_t::Self()->Iterate_Player_Objectives(iterator, locker);
 
         // we need to filter this
 
-        objectives.Sort(
-            [](some<Quest_Objective_t*>& objective_a, some<Quest_Objective_t*>& objective_b)->Int_t
+        results.Sort(
+            [](Objective_t& objective_a, Objective_t& objective_b)->Int_t
             {
                 Comparator_e result = Form_t::Compare_Names(
-                    objective_a->display_text,
-                    objective_b->display_text
+                    objective_a.display_text,
+                    objective_b.display_text
                 );
                 if (result == Comparator_e::IS_EQUAL) {
-                    return objective_a->index - objective_b->index;
-                } else {
-                    return result;
+                    result = objective_a.objective->index - objective_b.objective->index;
+                    if (result == Comparator_e::IS_EQUAL) {
+                        result = objective_a.instance_id - objective_b.instance_id;
+                    }
                 }
+                return result;
             }
         );
 
-        return objectives;
+        return results;
     }
 
     Bool_t MCM_Journal_t::List_State_t::Is_Objective_Hidable(some<Quest_Objective_t*> objective)
     {
+        SKYLIB_ASSERT_SOME(objective);
+
         return
             objective->state == Quest_Objective_State_e::COMPLETED_AND_DISPLAYED ||
             objective->state == Quest_Objective_State_e::FAILED_AND_DISPLAYED ||
             objective->state == Quest_Objective_State_e::DISPLAYED;
     }
 
-    Bool_t MCM_Journal_t::List_State_t::Is_Objective_Shown(some<Quest_Objective_t*> objective)
+    Bool_t MCM_Journal_t::List_State_t::Is_Objective_Hidable(Objective_t& objective)
     {
-        SKYLIB_ASSERT_SOME(objective);
-
-        return this->hidden_objectives.count(objective()) < 1;
+        return Is_Objective_Hidable(objective.objective);
     }
 
-    Bool_t MCM_Journal_t::List_State_t::Is_Objective_Hidden(some<Quest_Objective_t*> objective)
+    Bool_t MCM_Journal_t::List_State_t::Is_Objective_Shown(Objective_t& objective)
     {
-        SKYLIB_ASSERT_SOME(objective);
-
-        return this->hidden_objectives.count(objective()) > 0;
+        return this->hidden_objectives.count(objective) < 1;
     }
 
-    void MCM_Journal_t::List_State_t::Show_Objective(some<Quest_Objective_t*> objective)
+    Bool_t MCM_Journal_t::List_State_t::Is_Objective_Hidden(Objective_t& objective)
     {
-        this->hidden_objectives.erase(objective());
+        return this->hidden_objectives.count(objective) > 0;
     }
 
-    void MCM_Journal_t::List_State_t::Hide_Objective(some<Quest_Objective_t*> objective)
+    void MCM_Journal_t::List_State_t::Show_Objective(Objective_t& objective)
     {
-        this->hidden_objectives.insert(objective());
+        this->hidden_objectives.erase(objective);
+    }
+
+    void MCM_Journal_t::List_State_t::Hide_Objective(Objective_t& objective)
+    {
+        this->hidden_objectives.insert(objective);
     }
 
     void MCM_Journal_t::List_State_t::Enforce_Objectives()
@@ -337,8 +436,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             virtual Iterator_e operator ()(some<Player_Objective_t*> player_objective) override
             {
                 if (player_objective->objective) {
-                    if (self.Is_Objective_Hidable(player_objective->objective()) &&
-                        self.Is_Objective_Hidden(player_objective->objective())) {
+                    Objective_t objective = player_objective;
+                    if (self.Is_Objective_Hidable(objective) &&
+                        self.Is_Objective_Hidden(objective)) {
                         player_objective->state = Quest_Objective_State_e::DORMANT;
                     } else {
                         player_objective->state = player_objective->objective->state;
@@ -349,7 +449,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         };
 
         Iterator_t iterator(*this);
-        Player_t::Self()->Iterate_Player_Objectives(iterator);
+        Read_Locker_t locker(Game_t::Form_IDs_To_Forms_Lock());
+        Player_t::Self()->Iterate_Player_Objectives(iterator, locker);
     }
 
     MCM_Journal_t::Item_State_t::Item_State_t() :
@@ -420,7 +521,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         }
     }
 
-    Vector_t<some<Quest_Objective_t*>>& MCM_Journal_t::Item_State_t::Objectives()
+    Vector_t<Objective_t>& MCM_Journal_t::Item_State_t::Objectives()
     {
         if (this->do_update_objectives) {
             this->do_update_objectives = false;
@@ -752,15 +853,15 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
                 {
                     item_state.Queue_Objectives_Update();
-                    Vector_t<some<Quest_Objective_t*>>& objectives = item_state.Objectives();
+                    Vector_t<Objective_t>& objectives = item_state.Objectives();
                     size_t objective_count = objectives.size();
                     if (objective_count > 0) {
                         mcm->Add_Text_Option(mcm->Add_Font("_______________________", "", "#80", "27"), Const::String::OBJECTIVES);
                         option_state.show_objectives =
                             mcm->Add_Text_Option(mcm->Add_Font("_______________________", "", "#80", "27"), "");
                         for (size_t idx = 0, end = objectives.size(); idx < end && mcm->Can_Add_Options(1); idx += 1) {
-                            some<Quest_Objective_t*> objective = objectives[idx];
-                            mcm->Add_Toggle_Option(objective->display_text, list_state.Is_Objective_Shown(objective));
+                            Objective_t& objective = objectives[idx];
+                            mcm->Add_Toggle_Option(objective, list_state.Is_Objective_Shown(objective));
                         }
                     } else {
                         mcm->Add_Text_Option(mcm->Add_Font("_______________________", "", "#80", "27"), Const::String::OBJECTIVES, doticu_mcmlib::Flag_e::DISABLE);
@@ -802,7 +903,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             maybe<size_t> index = none<size_t>();
             if (index = mcm->Option_To_Item_Index(option, option_state.show_objectives + 1, item_state.Objective_Count()),
                 index.Has_Value()) {
-                some<Quest_Objective_t*> objective = item_state.Objectives()[index()];
+                Objective_t& objective = item_state.Objectives()[index()];
                 if (list_state.Is_Objective_Shown(objective)) {
                     list_state.Hide_Objective(objective);
                 } else {

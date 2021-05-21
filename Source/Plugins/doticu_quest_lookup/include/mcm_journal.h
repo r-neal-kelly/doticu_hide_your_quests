@@ -15,6 +15,36 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     class MCM_t;
 
+    class Objective_t
+    {
+    public:
+        some<Quest_Objective_t*>    objective;
+        u32                         instance_id;
+        String_t                    display_text;
+
+    public:
+        Objective_t(some<Quest_Objective_t*> objective, u32 instance_id);
+        Objective_t(some<Player_Objective_t*> player_objective);
+        Objective_t(const Objective_t& other);
+        Objective_t(Objective_t&& other) noexcept;
+        Objective_t& operator =(const Objective_t& other);
+        Objective_t& operator =(Objective_t&& other) noexcept;
+        ~Objective_t();
+
+    public:
+        operator String_t() const;
+
+    public:
+        friend Bool_t   operator ==(const Objective_t& a, const Objective_t& b);
+        friend Bool_t   operator !=(const Objective_t& a, const Objective_t& b);
+    };
+
+    class Objective_hash
+    {
+    public:
+        size_t operator ()(const Objective_t& key) const;
+    };
+
     class MCM_Journal_t :
         public Quest_t
     {
@@ -34,6 +64,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
             Int_t                       list_current_page_index;
             Vector_t<Int_t>             list_hidden_objectives;
+            Vector_t<Int_t>             list_objective_instance_ids;
             Vector_t<maybe<Quest_t*>>   list_objective_quests;
 
             maybe<Quest_t*>             item_current;
@@ -51,6 +82,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
             Virtual::Variable_tt<Int_t>&                        List_Current_Page_Index();
             Virtual::Variable_tt<Vector_t<Int_t>>&              List_Hidden_Objectives();
+            Virtual::Variable_tt<Vector_t<Int_t>>&              List_Objective_Instance_IDs();
             Virtual::Variable_tt<Vector_t<maybe<Quest_t*>>>&    List_Objective_Quests();
 
             Virtual::Variable_tt<maybe<Quest_t*>>&              Item_Current();
@@ -83,10 +115,10 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         class List_State_t
         {
         public:
-            std::unordered_set<Quest_Objective_t*>  hidden_objectives;
+            std::unordered_set<Objective_t, Objective_hash> hidden_objectives;
 
-            Vector_t<some<Quest_t*>>                quests;
-            Bool_t                                  do_update_quests;
+            Vector_t<some<Quest_t*>>                        quests;
+            Bool_t                                          do_update_quests;
 
         public:
             List_State_t();
@@ -101,33 +133,34 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             void    Write();
 
         public:
-            Int_t                               Page_Count(size_t item_count);
-            Int_t                               Current_Page_Index(Int_t page_count);
-            void                                Go_To_Previous_Page(size_t item_count);
-            void                                Go_To_Next_Page(size_t item_count);
-            void                                Go_To_Page(maybe<Quest_t*> item);
+            Int_t                       Page_Count(size_t item_count);
+            Int_t                       Current_Page_Index(Int_t page_count);
+            void                        Go_To_Previous_Page(size_t item_count);
+            void                        Go_To_Next_Page(size_t item_count);
+            void                        Go_To_Page(maybe<Quest_t*> item);
 
-            Vector_t<some<Quest_t*>>&           Quests();
-            size_t                              Quest_Count();
-            void                                Queue_Quests_Update();
+            Vector_t<some<Quest_t*>>&   Quests();
+            size_t                      Quest_Count();
+            void                        Queue_Quests_Update();
 
-            Vector_t<some<Quest_Objective_t*>>  Objectives(some<Quest_t*> quest);
+            Vector_t<Objective_t>       Objectives(some<Quest_t*> quest);
 
-            Bool_t                              Is_Objective_Hidable(some<Quest_Objective_t*> objective);
-            Bool_t                              Is_Objective_Shown(some<Quest_Objective_t*> objective);
-            Bool_t                              Is_Objective_Hidden(some<Quest_Objective_t*> objective);
+            Bool_t                      Is_Objective_Hidable(some<Quest_Objective_t*> objective);
+            Bool_t                      Is_Objective_Hidable(Objective_t& objective);
+            Bool_t                      Is_Objective_Shown(Objective_t& objective);
+            Bool_t                      Is_Objective_Hidden(Objective_t& objective);
 
-            void                                Show_Objective(some<Quest_Objective_t*> objective);
-            void                                Hide_Objective(some<Quest_Objective_t*> objective);
+            void                        Show_Objective(Objective_t& objective);
+            void                        Hide_Objective(Objective_t& objective);
 
-            void                                Enforce_Objectives();
+            void                        Enforce_Objectives();
         };
 
         class Item_State_t
         {
         public:
-            Vector_t<some<Quest_Objective_t*>>  objectives;
-            Bool_t                              do_update_objectives;
+            Vector_t<Objective_t>   objectives;
+            Bool_t                  do_update_objectives;
 
         public:
             Item_State_t();
@@ -138,14 +171,14 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             ~Item_State_t();
 
         public:
-            maybe<Quest_t*> Current();
-            void            Current(maybe<Quest_t*> item);
-            maybe<Quest_t*> Go_To_Previous_Item();
-            maybe<Quest_t*> Go_To_Next_Item();
+            maybe<Quest_t*>         Current();
+            void                    Current(maybe<Quest_t*> item);
+            maybe<Quest_t*>         Go_To_Previous_Item();
+            maybe<Quest_t*>         Go_To_Next_Item();
 
-            Vector_t<some<Quest_Objective_t*>>& Objectives();
-            size_t                              Objective_Count();
-            void                                Queue_Objectives_Update();
+            Vector_t<Objective_t>&  Objectives();
+            size_t                  Objective_Count();
+            void                    Queue_Objectives_Update();
         };
 
     public:

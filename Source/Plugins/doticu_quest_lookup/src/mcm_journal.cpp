@@ -83,7 +83,6 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     size_t Objective_hash::operator ()(const Objective_t& key) const
     {
-        //return CRC32_Hash_t::Hash<Objective_t>(key);
         return CRC32_Hash_t::Hash<Quest_Objective_t*>(key.objective());
     }
 

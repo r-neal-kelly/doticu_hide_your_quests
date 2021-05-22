@@ -232,6 +232,19 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         MCM_Journal_t::On_Update_Version(version_to_update);
     }
 
+    void MCM_t::Toggle(Int_t option, Bool_t& value)
+    {
+        Flicker_Option(option);
+        value = !value;
+        Toggle_Option_Value(option, value, true);
+    }
+
+    void MCM_t::Toggle(Int_t option, Bool_t&& value)
+    {
+        Flicker_Option(option);
+        Toggle_Option_Value(option, value, true);
+    }
+
     Bool_t MCM_t::On_Config_Open(Virtual::Stack_ID_t stack_id)
     {
         Virtual::Latent_ID_t latent_id(stack_id);

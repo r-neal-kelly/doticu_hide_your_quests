@@ -80,6 +80,10 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         static void On_Update_Version(const Version_t<u16> version_to_update);
 
     public:
+        void    Toggle(Int_t option, Bool_t& value);
+        void    Toggle(Int_t option, Bool_t&& value);
+
+    public:
         Bool_t  On_Config_Open(Virtual::Stack_ID_t stack_id);
         Bool_t  On_Config_Close(Virtual::Stack_ID_t stack_id);
 

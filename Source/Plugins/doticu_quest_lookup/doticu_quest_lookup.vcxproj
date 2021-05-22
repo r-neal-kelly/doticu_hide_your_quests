@@ -113,6 +113,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\consts.h" />
+    <ClInclude Include="include\enum_mcm_journal_mode.h" />
     <ClInclude Include="include\enum_mcm_view.h" />
     <ClInclude Include="include\intrinsic.h" />
     <ClInclude Include="include\mcm.h" />

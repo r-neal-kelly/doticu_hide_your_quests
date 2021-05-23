@@ -227,6 +227,11 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         MCM_Journal_t::On_After_Load_Game();
     }
 
+    void MCM_t::On_Update()
+    {
+        MCM_Journal_t::On_Update();
+    }
+
     void MCM_t::On_Update_Version(const Version_t<u16> version_to_update)
     {
         MCM_Journal_t::On_Update_Version(version_to_update);

@@ -77,6 +77,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup { namespace Const {
         static constexpr const char*    QUESTS_ARE_NOT_RUNNING_NEW  = "$dquestl_quests_are_not_running_new";
         static constexpr const char*    QUESTS_ARE_NOT_RUNNING_LOAD = "$dquestl_quests_are_not_running_load";
 
+        static constexpr const char*    COLOR_BLUE                  = "#bedef8";
+        static constexpr const char*    COLOR_WHITE                 = "#FFFFFF";
+
     }
 
     namespace Version {

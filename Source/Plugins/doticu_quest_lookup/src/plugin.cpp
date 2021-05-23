@@ -42,6 +42,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
         this->quests.reserve(1);
         this->quests.push_back(Const::Quest::MCM());
+
+        Start_Updating(std::chrono::milliseconds(1000));
     }
 
     void Plugin_t::On_After_New_Game()
@@ -137,6 +139,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     void Plugin_t::On_Update(u32 time_stamp)
     {
+        if (Is_Active() && Is_Installed() && Are_Quests_Running()) {
+            MCM_t::On_Update();
+        }
     }
 
     Bool_t Plugin_t::Is_Active()

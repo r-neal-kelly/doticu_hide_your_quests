@@ -76,7 +76,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         static void On_After_Save_Game();
         static void On_Before_Load_Game();
         static void On_After_Load_Game();
-
+        static void On_Update();
         static void On_Update_Version(const Version_t<u16> version_to_update);
 
     public:

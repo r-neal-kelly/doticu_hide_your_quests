@@ -6,6 +6,7 @@
 #include "doticu_skylib/math.h"
 #include "doticu_skylib/player.h"
 #include "doticu_skylib/quest_objective.h"
+#include "doticu_skylib/ui.h"
 #include "doticu_skylib/virtual_macros.h"
 
 #include "consts.h"
@@ -13,6 +14,59 @@
 #include "mcm_journal.h"
 
 namespace doticu_skylib { namespace doticu_quest_lookup {
+
+    Quest_And_Label_t::Quest_And_Label_t(some<Quest_t*> quest, Bool_t do_misc_objective) :
+        quest(quest)
+    {
+        SKYLIB_ASSERT_SOME(this->quest);
+
+        if (do_misc_objective) {
+            if (this->quest->quest_type == Quest_Type_e::MISC) {
+                maybe<Player_Objective_t> objective = Player_t::Self()->Highest_Player_Objective(this->quest);
+                if (objective.Has_Value()) {
+                    label = objective().Parse_Display_Text();
+                } else {
+                    label = this->quest->Any_Name();
+                }
+            } else {
+                label = this->quest->Any_Name();
+            }
+        } else {
+            label = this->quest->Any_Name();
+        }
+    }
+
+    Quest_And_Label_t::Quest_And_Label_t(const Quest_And_Label_t& other) :
+        quest(other.quest), label(other.label)
+    {
+    }
+
+    Quest_And_Label_t::Quest_And_Label_t(Quest_And_Label_t&& other) noexcept :
+        quest(std::move(other.quest)), label(std::move(other.label))
+    {
+    }
+
+    Quest_And_Label_t& Quest_And_Label_t::operator =(const Quest_And_Label_t& other)
+    {
+        if (this != std::addressof(other)) {
+            this->quest = other.quest;
+            this->label = other.label;
+        }
+        return *this;
+    }
+
+    Quest_And_Label_t& Quest_And_Label_t::operator =(Quest_And_Label_t&& other) noexcept
+    {
+        if (this != std::addressof(other)) {
+            this->quest = std::move(other.quest);
+            this->label = std::move(other.label);
+        }
+        return *this;
+    }
+
+    Quest_And_Label_t::~Quest_And_Label_t()
+    {
+    }
 
     MCM_Journal_t::Save_State_t::Save_State_t() :
         current_view(DEFAULT_CURRENT_VIEW),
@@ -337,14 +391,14 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     void MCM_Journal_t::List_State_t::Go_To_Page(maybe<Quest_t*> item)
     {
         if (item) {
-            maybe<size_t> maybe_idx = this->quests.Index_Of(item());
+            maybe<size_t> maybe_idx = Index_Of_Quest(item());
             if (maybe_idx.Has_Value()) {
                 save_state.list_current_page_index = maybe_idx.Value() / LIST_ITEMS_PER_PAGE;
             }
         }
     }
 
-    Vector_t<some<Quest_t*>>& MCM_Journal_t::List_State_t::Quests()
+    Vector_t<Quest_And_Label_t>& MCM_Journal_t::List_State_t::Quests()
     {
         if (this->do_update_quests) {
             this->do_update_quests = false;
@@ -358,25 +412,39 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             }
             filter_state.Filter(objectives);
 
+            Bool_t should_do_misc_objective = options_state.Mode() == MCM_Journal_Mode_e::HIDE;
             for (size_t idx = 0, end = objectives.size(); idx < end; idx += 1) {
                 some<Quest_Objective_t*> objective = objectives[idx];
                 maybe<Quest_t*> quest = objective->quest;
-                if (quest && !this->quests.Has(quest()) && Is_Objective_Hidable(objective)) {
-                    this->quests.push_back(objective->quest);
+                if (quest && !Has_Quest(quest()) && Is_Objective_Hidable(objective)) {
+                    this->quests.push_back({ quest(), should_do_misc_objective });
                 }
             }
 
             this->quests.Sort(
-                [](some<Quest_t*>& quest_a, some<Quest_t*>& quest_b)->Int_t
+                [](Quest_And_Label_t& a, Quest_And_Label_t& b)->Int_t
                 {
-                    Comparator_e result = Form_t::Compare_Names(
-                        quest_a->Any_Name(),
-                        quest_b->Any_Name()
-                    );
-                    if (result == Comparator_e::IS_EQUAL) {
-                        return quest_a->form_id - quest_b->form_id;
+                    Bool_t a_is_finished = a.quest->Is_Completed_Or_Failed();
+                    Bool_t b_is_finished = b.quest->Is_Completed_Or_Failed();
+                    if (a_is_finished && !b_is_finished) {
+                        return Comparator_e::IS_UNORDERED;
+                    } else if (!a_is_finished && b_is_finished) {
+                        return Comparator_e::IS_ORDERED;
                     } else {
-                        return result;
+                        Bool_t a_is_misc = a.quest->quest_type == Quest_Type_e::MISC;
+                        Bool_t b_is_misc = b.quest->quest_type == Quest_Type_e::MISC;
+                        if (a_is_misc && !b_is_misc) {
+                            return Comparator_e::IS_UNORDERED;
+                        } else if (!a_is_misc && b_is_misc) {
+                            return Comparator_e::IS_ORDERED;
+                        } else {
+                            Comparator_e result = Form_t::Compare_Names(a.label, b.label);
+                            if (result == Comparator_e::IS_EQUAL) {
+                                return a.quest->form_id - b.quest->form_id;
+                            } else {
+                                return result;
+                            }
+                        }
                     }
                 }
             );
@@ -393,6 +461,28 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     void MCM_Journal_t::List_State_t::Queue_Quests_Update()
     {
         this->do_update_quests = true;
+    }
+
+    Bool_t MCM_Journal_t::List_State_t::Has_Quest(some<Quest_t*> quest)
+    {
+        Vector_t<Quest_And_Label_t>& quests = Quests();
+        for (size_t idx = 0, end = quests.size(); idx < end; idx += 1) {
+            if (quests[idx].quest == quest) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    maybe<size_t> MCM_Journal_t::List_State_t::Index_Of_Quest(some<Quest_t*> quest)
+    {
+        Vector_t<Quest_And_Label_t>& quests = Quests();
+        for (size_t idx = 0, end = quests.size(); idx < end; idx += 1) {
+            if (quests[idx].quest == quest) {
+                return idx;
+            }
+        }
+        return none<size_t>();
     }
 
     MCM_Journal_t::Filter_State_t::Filter_State_t()
@@ -600,15 +690,15 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
         maybe<Quest_t*> current_item = Current();
         if (current_item) {
-            Vector_t<some<Quest_t*>> items = list_state.Quests();
-            maybe<size_t> maybe_idx = items.Index_Of(Current());
+            maybe<size_t> maybe_idx = list_state.Index_Of_Quest(current_item());
             if (maybe_idx.Has_Value()) {
+                Vector_t<Quest_And_Label_t> items = list_state.Quests();
                 size_t idx = maybe_idx.Value();
                 maybe<Quest_t*> result;
                 if (idx == 0) {
-                    result = items[items.size() - 1];
+                    result = items[items.size() - 1].quest;
                 } else {
-                    result = items[idx - 1];
+                    result = items[idx - 1].quest;
                 }
                 Current(result);
                 return result;
@@ -624,15 +714,15 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     {
         maybe<Quest_t*> current_item = Current();
         if (current_item) {
-            Vector_t<some<Quest_t*>> items = list_state.Quests();
-            maybe<size_t> maybe_idx = items.Index_Of(Current());
+            maybe<size_t> maybe_idx = list_state.Index_Of_Quest(current_item());
             if (maybe_idx.Has_Value()) {
+                Vector_t<Quest_And_Label_t> items = list_state.Quests();
                 size_t idx = maybe_idx.Value();
                 maybe<Quest_t*> result;
                 if (idx == items.size() - 1) {
-                    result = items[0];
+                    result = items[0].quest;
                 } else {
-                    result = items[idx + 1];
+                    result = items[idx + 1].quest;
                 }
                 Current(result);
                 return result;
@@ -707,6 +797,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         this->do_update_objectives = true;
     }
 
+    std::mutex                          MCM_Journal_t::lock;
     MCM_Journal_t::Save_State_t         MCM_Journal_t::save_state;
     MCM_Journal_t::Option_State_t       MCM_Journal_t::option_state;
     MCM_Journal_t::List_State_t         MCM_Journal_t::list_state;
@@ -814,9 +905,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         SKYLIB_ASSERT_SOME(objective);
         SKYLIB_ASSERT_SOME(objective->quest);
 
-        if (hidden_quests.count(objective->quest) > 0) {
+        if (hidden_quests.count(objective->quest()) > 0) {
             if (options_state.Do_Show_New_Objectives()) {
-                return hidden_quests[objective->quest] >= objective->index;
+                return hidden_quests[objective->quest()] >= objective->index;
             } else {
                 return true;
             }
@@ -850,7 +941,11 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         SKYLIB_ASSERT_SOME(objective);
         SKYLIB_ASSERT_SOME(objective->quest);
 
-        hidden_quests[objective->quest] = objective->index;
+        if (options_state.Do_Show_New_Objectives()) {
+            hidden_quests[objective->quest()] = objective->index;
+        } else {
+            Add_Hidden_Objective(objective->quest());
+        }
     }
 
     void MCM_Journal_t::Add_Hidden_Objective(some<Quest_t*> quest)
@@ -870,7 +965,18 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         SKYLIB_ASSERT_SOME(objective);
         SKYLIB_ASSERT_SOME(objective->quest);
 
-        hidden_quests.erase(objective->quest);
+        if (options_state.Do_Show_New_Objectives()) {
+            maybe<Quest_Objective_Index_t> lowest_index = objective->quest->Lowest_Objective_Index();
+            SKYLIB_ASSERT_SOME(lowest_index.Has_Value());
+
+            if (objective->index > lowest_index.Value()) {
+                hidden_quests[objective->quest()] = objective->index - 1;
+            } else {
+                hidden_quests.erase(objective->quest());
+            }
+        } else {
+            Remove_Hidden_Objective(objective->quest());
+        }
     }
 
     void MCM_Journal_t::Remove_Hidden_Objective(some<Quest_t*> quest)
@@ -888,21 +994,14 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         public:
             virtual Iterator_e operator ()(some<Player_Objective_t*> it) override
             {
-                if (it->objective && it->objective->quest) {
-                    if (Is_Objective_Hidable(it->objective())) {
-                        if (it->objective->state == Quest_Objective_State_e::COMPLETED_AND_DISPLAYED ||
-                            it->objective->state == Quest_Objective_State_e::FAILED_AND_DISPLAYED) {
-                            if (!options_state.Do_Show_Finished_Quests() || Has_Hidden_Objective(it->objective())) {
-                                it->state = Quest_Objective_State_e::DORMANT;
-                            } else {
-                                it->state = it->objective->state;
-                            }
+                if (it->objective) {
+                    if (it->objective->quest && Is_Objective_Hidable(it->objective())) {
+                        if (!options_state.Do_Show_Finished_Quests() && it->objective->quest->Is_Completed_Or_Failed()) {
+                            it->state = Quest_Objective_State_e::DORMANT;
+                        } else if (Has_Hidden_Objective(it->objective())) {
+                            it->state = Quest_Objective_State_e::DORMANT;
                         } else {
-                            if (Has_Hidden_Objective(it->objective())) {
-                                it->state = Quest_Objective_State_e::DORMANT;
-                            } else {
-                                it->state = it->objective->state;
-                            }
+                            it->state = it->objective->state;
                         }
                     } else {
                         it->state = it->objective->state;
@@ -919,45 +1018,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     maybe<Player_Objective_t> MCM_Journal_t::Highest_Objective(some<Quest_t*> quest)
     {
-        class Iterator_t :
-            public Iterator_i<some<Player_Objective_t*>>
-        {
-        public:
-            some<Quest_t*>              quest;
-            maybe<Player_Objective_t>   result;
-
-        public:
-            Iterator_t(some<Quest_t*> quest) :
-                quest(quest), result(none<Player_Objective_t>())
-            {
-            }
-
-        public:
-            virtual Iterator_e operator ()(some<Player_Objective_t*> it) override
-            {
-                if (it->objective && it->objective->quest == this->quest) {
-                    if (Is_Objective_Hidable(it->objective())) {
-                        if (!this->result.Has_Value() ||
-                            this->result().instance_id < it->instance_id ||
-                            this->result().objective->index < it->objective->index) {
-                            this->result = *it;
-                        }
-                    }
-                }
-                return Iterator_e::CONTINUE;
-            }
-
-        public:
-            maybe<Player_Objective_t> Result()
-            {
-                return this->result;
-            }
-        };
-
-        Iterator_t iterator(quest());
         Read_Locker_t locker(Game_t::Form_IDs_To_Forms_Lock());
-        Player_t::Self()->Iterate_Player_Objectives(iterator, locker);
-        return iterator.Result();
+        return Player_t::Self()->Highest_Player_Objective(quest, locker);
     }
 
     void MCM_Journal_t::On_Register(some<Virtual::Machine_t*> v_machine)
@@ -987,6 +1049,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     void MCM_Journal_t::On_After_New_Game()
     {
+        std::lock_guard<std::mutex> locker(lock);
+
         Reset_Save_State();
         Reset_Option_State();
         Reset_List_State();
@@ -997,6 +1061,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     void MCM_Journal_t::On_Before_Save_Game()
     {
+        std::lock_guard<std::mutex> locker(lock);
+
         const size_t count = save_state.hidden_quests.size();
         save_state.hidden_quests.reserve(count);
         save_state.hidden_objectives.reserve(count);
@@ -1017,14 +1083,18 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     void MCM_Journal_t::On_After_Save_Game()
     {
+        std::lock_guard<std::mutex> locker(lock);
     }
 
     void MCM_Journal_t::On_Before_Load_Game()
     {
+        std::lock_guard<std::mutex> locker(lock);
     }
 
     void MCM_Journal_t::On_After_Load_Game()
     {
+        std::lock_guard<std::mutex> locker(lock);
+
         Reset_Save_State();
         Reset_Option_State();
         Reset_List_State();
@@ -1053,22 +1123,37 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         Enforce_Objectives();
     }
 
+    void MCM_Journal_t::On_Update()
+    {
+        if (!UI_t::Is_Menu_Open("Journal Menu")) {
+            std::lock_guard<std::mutex> locker(lock);
+
+            Enforce_Objectives();
+        }
+    }
+
     void MCM_Journal_t::On_Update_Version(const Version_t<u16> version_to_update)
     {
+        std::lock_guard<std::mutex> locker(lock);
     }
 
     void MCM_Journal_t::On_Config_Open()
     {
+        std::lock_guard<std::mutex> locker(lock);
+
         list_state.Queue_Quests_Update();
         item_state.Queue_Objectives_Update();
     }
 
     void MCM_Journal_t::On_Config_Close()
     {
+        std::lock_guard<std::mutex> locker(lock);
     }
 
     void MCM_Journal_t::On_Page_Open(Virtual::Latent_ID_t&& latent_id, Bool_t is_refresh)
     {
+        std::lock_guard<std::mutex> locker(lock);
+
         Reset_Option_State();
 
         some<MCM_View_e> current_view = Current_View();
@@ -1080,6 +1165,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     void MCM_Journal_t::On_Option_Select(Virtual::Latent_ID_t&& latent_id, Int_t option)
     {
+        std::lock_guard<std::mutex> locker(lock);
+
         some<MCM_View_e> current_view = Current_View();
         if (current_view == MCM_View_e::LIST)           On_Option_Select_List(std::move(latent_id), option);
         else if (current_view == MCM_View_e::FILTER)    On_Option_Select_Filter(std::move(latent_id), option);
@@ -1089,6 +1176,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     void MCM_Journal_t::On_Option_Menu_Open(Virtual::Latent_ID_t&& latent_id, Int_t option)
     {
+        std::lock_guard<std::mutex> locker(lock);
+
         some<MCM_View_e> current_view = Current_View();
         if (current_view == MCM_View_e::LIST)           On_Option_Menu_Open_List(std::move(latent_id), option);
         else if (current_view == MCM_View_e::FILTER)    On_Option_Menu_Open_Filter(std::move(latent_id), option);
@@ -1098,6 +1187,8 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     void MCM_Journal_t::On_Option_Menu_Accept(Virtual::Latent_ID_t&& latent_id, Int_t option, Int_t index)
     {
+        std::lock_guard<std::mutex> locker(lock);
+
         some<MCM_View_e> current_view = Current_View();
         if (current_view == MCM_View_e::LIST)           On_Option_Menu_Accept_List(std::move(latent_id), option, index);
         else if (current_view == MCM_View_e::FILTER)    On_Option_Menu_Accept_Filter(std::move(latent_id), option, index);
@@ -1107,26 +1198,32 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     void MCM_Journal_t::On_Option_Slider_Open(Virtual::Latent_ID_t&& latent_id, Int_t option)
     {
+        std::lock_guard<std::mutex> locker(lock);
     }
 
     void MCM_Journal_t::On_Option_Slider_Accept(Virtual::Latent_ID_t&& latent_id, Int_t option, Float_t value)
     {
+        std::lock_guard<std::mutex> locker(lock);
     }
 
     void MCM_Journal_t::On_Option_Input_Accept(Virtual::Latent_ID_t&& latent_id, Int_t option, String_t value)
     {
+        std::lock_guard<std::mutex> locker(lock);
     }
 
     void MCM_Journal_t::On_Option_Keymap_Change(Virtual::Latent_ID_t&& latent_id, Int_t option, Int_t key, String_t conflict, String_t mod)
     {
+        std::lock_guard<std::mutex> locker(lock);
     }
 
     void MCM_Journal_t::On_Option_Default(Virtual::Latent_ID_t&& latent_id, Int_t option)
     {
+        std::lock_guard<std::mutex> locker(lock);
     }
 
     void MCM_Journal_t::On_Option_Highlight(Virtual::Latent_ID_t&& latent_id, Int_t option)
     {
+        std::lock_guard<std::mutex> locker(lock);
     }
 
     void MCM_Journal_t::On_Page_Open_List(Virtual::Latent_ID_t&& latent_id, Bool_t is_refresh)
@@ -1140,7 +1237,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             list_state.Queue_Quests_Update();
         }
 
-        Vector_t<some<Quest_t*>>& quests = list_state.Quests();
+        Vector_t<Quest_And_Label_t>& quests = list_state.Quests();
         size_t quest_count = quests.size();
         if (quest_count > 0) {
             Int_t page_count = list_state.Page_Count(quest_count);
@@ -1169,11 +1266,23 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
             if (options_state.Mode() == MCM_Journal_Mode_e::LOOKUP) {
                 for (; idx < end; idx += 1) {
-                    mcm->Add_Text_Option(quests[idx]->Any_Name(), "...");
+                    Quest_And_Label_t& item = quests[idx];
+                    if (item.quest->Is_Completed_Or_Failed()) {
+                        mcm->Add_Text_Option(mcm->Add_Font(quests[idx].label, Const::String::COLOR_BLUE), "...");
+                    } else {
+                        mcm->Add_Text_Option(mcm->Add_Font(quests[idx].label, Const::String::COLOR_WHITE), "...");
+                    }
                 }
             } else if (options_state.Mode() == MCM_Journal_Mode_e::HIDE) {
                 for (; idx < end; idx += 1) {
-                    mcm->Add_Toggle_Option(quests[idx]->Any_Name(), !Has_Hidden_Objective(quests[idx]));
+                    Quest_And_Label_t& item = quests[idx];
+                    if (item.quest->Is_Completed_Or_Failed()) {
+                        mcm->Add_Toggle_Option(mcm->Add_Font(quests[idx].label, Const::String::COLOR_BLUE),
+                                               !Has_Hidden_Objective(item.quest));
+                    } else {
+                        mcm->Add_Toggle_Option(mcm->Add_Font(quests[idx].label, Const::String::COLOR_WHITE),
+                                               !Has_Hidden_Objective(item.quest));
+                    }
                 }
             }
         } else {
@@ -1209,7 +1318,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             list_state.Go_To_Next_Page(list_state.Quests().size());
             mcm->Reset_Page();
         } else {
-            Vector_t<some<Quest_t*>> quests = list_state.Quests();
+            Vector_t<Quest_And_Label_t> quests = list_state.Quests();
             size_t quest_count = quests.size();
             maybe<size_t> quest_index = mcm->Option_To_Item_Index(
                 option,
@@ -1219,7 +1328,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
                 LIST_ITEMS_PER_PAGE
             );
             if (quest_index.Has_Value()) {
-                some<Quest_t*> quest = quests[quest_index.Value()];
+                some<Quest_t*> quest = quests[quest_index.Value()].quest;
                 if (options_state.Mode() == MCM_Journal_Mode_e::LOOKUP) {
                     mcm->Disable_Option(option);
                     item_state.Current(quest);
@@ -1433,9 +1542,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
         maybe<Quest_t*> item = item_state.Current();
         if (item) {
-            Vector_t<some<Quest_t*>> items = list_state.Quests();
-            maybe<size_t> item_index = items.Index_Of(item());
+            maybe<size_t> item_index = list_state.Index_Of_Quest(item());
             if (item_index.Has_Value()) {
+                Vector_t<Quest_And_Label_t> items = list_state.Quests();
                 size_t item_count = items.size();
                 mcm->Title_Text(mcm->Item_Title(Const::String::$JOURNAL_QUEST, item->Any_Name(), item_index(), item_count));
 
@@ -1501,9 +1610,13 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             item_state.Go_To_Next_Item();
             mcm->Reset_Page();
         } else {
-            maybe<size_t> index = none<size_t>();
-            if (index = mcm->Option_To_Item_Index(option, option_state.show_objectives + 1, item_state.Objective_Count()),
-                index.Has_Value()) {
+            maybe<size_t> index = mcm->Option_To_Item_Index(
+                option,
+                option_state.show_objectives + 1,
+                item_state.Objective_Count()
+            );
+            if (index.Has_Value()) {
+                mcm->Disable_Option(option);
                 Player_Objective_t& objective = item_state.Objectives()[index()];
                 if (Has_Hidden_Objective(objective.objective())) {
                     Remove_Hidden_Objective(objective.objective());

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <mutex>
 #include <unordered_map>
 
 #include "doticu_skylib/enum_logic_gate.h"
@@ -16,6 +17,21 @@
 namespace doticu_skylib { namespace doticu_quest_lookup {
 
     class MCM_t;
+
+    class Quest_And_Label_t
+    {
+    public:
+        some<Quest_t*>  quest;
+        String_t        label;
+
+    public:
+        Quest_And_Label_t(some<Quest_t*> quest, Bool_t do_misc_objective);
+        Quest_And_Label_t(const Quest_And_Label_t& other);
+        Quest_And_Label_t(Quest_And_Label_t&& other) noexcept;
+        Quest_And_Label_t& operator =(const Quest_And_Label_t& other);
+        Quest_And_Label_t& operator =(Quest_And_Label_t&& other) noexcept;
+        ~Quest_And_Label_t();
+    };
 
     class MCM_Journal_t :
         public Quest_t
@@ -173,7 +189,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         class List_State_t
         {
         public:
-            Vector_t<some<Quest_t*>>    quests;
+            Vector_t<Quest_And_Label_t> quests;
             Bool_t                      do_update_quests;
 
         public:
@@ -185,15 +201,17 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             ~List_State_t();
 
         public:
-            Int_t                       Page_Count(size_t item_count);
-            Int_t                       Current_Page_Index(Int_t page_count);
-            void                        Go_To_Previous_Page(size_t item_count);
-            void                        Go_To_Next_Page(size_t item_count);
-            void                        Go_To_Page(maybe<Quest_t*> item);
+            Int_t                           Page_Count(size_t item_count);
+            Int_t                           Current_Page_Index(Int_t page_count);
+            void                            Go_To_Previous_Page(size_t item_count);
+            void                            Go_To_Next_Page(size_t item_count);
+            void                            Go_To_Page(maybe<Quest_t*> item);
 
-            Vector_t<some<Quest_t*>>&   Quests();
-            size_t                      Quest_Count();
-            void                        Queue_Quests_Update();
+            Vector_t<Quest_And_Label_t>&    Quests();
+            size_t                          Quest_Count();
+            void                            Queue_Quests_Update();
+            Bool_t                          Has_Quest(some<Quest_t*> quest);
+            maybe<size_t>                   Index_Of_Quest(some<Quest_t*> quest);
         };
 
         class Filter_State_t
@@ -265,6 +283,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         };
 
     public:
+        static std::mutex                           lock;
         static Save_State_t                         save_state;
         static Option_State_t                       option_state;
         static List_State_t                         list_state;
@@ -314,7 +333,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         static void On_After_Save_Game();
         static void On_Before_Load_Game();
         static void On_After_Load_Game();
-
+        static void On_Update();
         static void On_Update_Version(const Version_t<u16> version_to_update);
 
     public:

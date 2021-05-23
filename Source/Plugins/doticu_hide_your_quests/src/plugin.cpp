@@ -10,18 +10,16 @@
 #include "mcm.h"
 #include "plugin.h"
 
-namespace doticu_skylib { namespace doticu_quest_lookup {
-
-    Vector_t<some<Quest_t*>> Plugin_t::quests;
+namespace doticu_skylib { namespace doticu_hide_your_quests {
 
     Plugin_t::Plugin_t() :
-        SKSE_Plugin_t("doticu_quest_lookup",
+        SKSE_Plugin_t("doticu_hide_your_quests",
                       Version_t<u16>(1, 5, 97),
                       Operator_e::EQUAL_TO,
                       Version_t<u16>(2, 0, 17),
                       Operator_e::GREATER_THAN_OR_EQUAL_TO)
     {
-        SKYLIB_LOG("doticu_quest_lookup:");
+        SKYLIB_LOG("doticu_hide_your_quests:");
         SKYLIB_LOG("");
     }
 
@@ -40,16 +38,13 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     void Plugin_t::On_After_Load_Data()
     {
-        this->quests.reserve(1);
-        this->quests.push_back(Const::Quest::MCM());
-
         Start_Updating(std::chrono::milliseconds(1000));
     }
 
     void Plugin_t::On_After_New_Game()
     {
         if (Is_Active() && !Is_Installed()) {
-            if (Are_Quests_Running()) {
+            if (Is_Quest_Running()) {
                 Const::Global::Is_Installed()->Bool(true);
 
                 const Version_t<u16>& version = Const::Version::Self();
@@ -79,21 +74,21 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     void Plugin_t::On_Before_Save_Game(some<const char*> file_path, u32 file_path_length)
     {
-        if (Is_Active() && Is_Installed() && Are_Quests_Running()) {
+        if (Is_Active() && Is_Installed() && Is_Quest_Running()) {
             MCM_t::On_Before_Save_Game();
         }
     }
 
     void Plugin_t::On_After_Save_Game()
     {
-        if (Is_Active() && Is_Installed() && Are_Quests_Running()) {
+        if (Is_Active() && Is_Installed() && Is_Quest_Running()) {
             MCM_t::On_After_Save_Game();
         }
     }
 
     void Plugin_t::On_Before_Load_Game(some<const char*> file_path, u32 file_path_length)
     {
-        if (Is_Active() && Is_Installed() && Are_Quests_Running()) {
+        if (Is_Active() && Is_Installed() && Is_Quest_Running()) {
             MCM_t::On_Before_Load_Game();
         }
     }
@@ -103,7 +98,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         if (did_load_successfully) {
             if (Is_Active()) {
                 if (Is_Installed()) {
-                    if (Are_Quests_Running()) {
+                    if (Is_Quest_Running()) {
                         const Version_t<u16>& current = Const::Version::Self();
                         const Version_t<u16> saved(Const::Global::Version_Major()->As<u16>(),
                                                    Const::Global::Version_Minor()->As<u16>(),
@@ -139,7 +134,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     void Plugin_t::On_Update(u32 time_stamp)
     {
-        if (Is_Active() && Is_Installed() && Are_Quests_Running()) {
+        if (Is_Active() && Is_Installed() && Is_Quest_Running()) {
             MCM_t::On_Update();
         }
     }
@@ -154,18 +149,13 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         return Const::Global::Is_Installed()->Bool();
     }
 
-    Bool_t Plugin_t::Are_Quests_Running()
+    Bool_t Plugin_t::Is_Quest_Running()
     {
-        for (size_t idx = 0, end = this->quests.size(); idx < end; idx += 1) {
-            if (!this->quests[idx]->Is_Enabled()) {
-                return false;
-            }
-        }
-        return true;
+        return Const::Quest::MCM()->Is_Enabled();
     }
 
     Plugin_t plugin;
 
 }}
 
-SKYLIB_EXPORT_SKSE_PLUGIN(doticu_skylib::doticu_quest_lookup::plugin);
+SKYLIB_EXPORT_SKSE_PLUGIN(doticu_skylib::doticu_hide_your_quests::plugin);

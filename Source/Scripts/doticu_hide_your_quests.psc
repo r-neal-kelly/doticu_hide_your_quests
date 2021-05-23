@@ -1,8 +1,10 @@
 ; Copyright © 2020 r-neal-kelly, aka doticu
 
-Scriptname doticu_quest_lookup_mcm extends SKI_ConfigBase
+Scriptname doticu_hide_your_quests extends SKI_ConfigBase
 
-string current_page = ""
+string  current_page        = ""
+Quest[] hidden_quests       = none
+int[]   hidden_objectives   = none
 
 event OnConfigOpen() native
 event OnConfigClose() native

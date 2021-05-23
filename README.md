@@ -1,5 +1,5 @@
-# Quest Lookup
-A SKSE plugin for The Elder Scrolls V: Skyrim with an MCM menu that allows you to interact with quests.
+# Hide Your Quests
+A SKSE plugin for The Elder Scrolls V: Skyrim with an MCM menu that allows you to hide your quests.
 
 ### Requirements
 - Skyrim SE 1.5.97

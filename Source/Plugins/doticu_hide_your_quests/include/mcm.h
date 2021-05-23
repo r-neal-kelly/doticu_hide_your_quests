@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <mutex>
+#include <unordered_map>
+
 #include "doticu_skylib/virtual_stack_id.h"
 
 #include "doticu_mcmlib/config_base.h"
@@ -11,19 +14,21 @@
 #include "consts.h"
 #include "intrinsic.h"
 
-namespace doticu_skylib { namespace doticu_quest_lookup {
+namespace doticu_skylib { namespace doticu_hide_your_quests {
 
     class MCM_t :
         public doticu_mcmlib::Config_Base_t
     {
     public:
-        static constexpr const char*    DEFAULT_CURRENT_PAGE    = Const::String::JOURNAL_QUESTS;
+        static constexpr const char*    DEFAULT_CURRENT_PAGE    = Const::String::CURRENT;
 
     public:
         class Save_State_t
         {
         public:
-            String_t    current_page;
+            String_t                    current_page;
+            Vector_t<maybe<Quest_t*>>   hidden_quests;
+            Vector_t<Int_t>             hidden_objectives;
 
         public:
             Save_State_t();
@@ -34,7 +39,9 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
             ~Save_State_t();
 
         public:
-            Virtual::Variable_tt<String_t>& Current_Page();
+            Virtual::Variable_tt<String_t>&                     Current_Page();
+            Virtual::Variable_tt<Vector_t<maybe<Quest_t*>>>&    Hidden_Quests();
+            Virtual::Variable_tt<Vector_t<Int_t>>&              Hidden_Objectives();
 
         public:
             void    Read();
@@ -42,7 +49,11 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
         };
 
     public:
-        static Save_State_t save_state;
+        static std::mutex                           lock;
+
+        static Save_State_t                         save_state;
+
+        static std::unordered_map<Quest_t*, u16>    hidden_quests;
 
     public:
         static some<MCM_t*>             Self();
@@ -52,21 +63,33 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
 
     public:
         static void Reset_Save_State();
+        static void Reset_State();
 
     public:
         static Bool_t           Current_Page(String_t& result);
 
         static std::string      Page_Title(const char* title, Int_t item_count, Int_t page_index, Int_t page_count);
-        static std::string      Item_Title(const char* item_type, const char* item_name, Int_t item_index, Int_t item_count);
+        static maybe<size_t>    Item_Index(Int_t option,
+                                           Int_t item_count,
+                                           Int_t page_index,
+                                           Int_t headers_per_page,
+                                           Int_t items_per_page);
 
-        static maybe<size_t>    Option_To_Item_Index(Int_t option,
-                                                     Int_t item_count,
-                                                     Int_t page_index,
-                                                     Int_t headers_per_page,
-                                                     Int_t items_per_page);
-        static maybe<size_t>    Option_To_Item_Index(Int_t option,
-                                                     Int_t option_begin,
-                                                     Int_t item_count);
+        static Bool_t           Is_Objective_Hidable(some<Quest_Objective_t*> objective);
+        static Bool_t           Has_Hidden_Objective(some<Quest_Objective_t*> objective);
+        static Bool_t           Has_Hidden_Objective(some<Quest_t*> quest);
+        static void             Add_Hidden_Objective(some<Quest_Objective_t*> objective);
+        static void             Add_Hidden_Objective(some<Quest_t*> quest);
+        static void             Remove_Hidden_Objective(some<Quest_Objective_t*> objective);
+        static void             Remove_Hidden_Objective(some<Quest_t*> quest);
+
+        static void             Enforce_Hidden_Objectives();
+
+    public:
+        static size_t   Page_Count(size_t item_count, size_t items_per_page);
+        static size_t   Page_Index(size_t& page_index, size_t page_count);
+        static size_t   Previous_Page(size_t& page_index, size_t page_count, size_t item_count);
+        static size_t   Next_Page(size_t& page_index, size_t page_count, size_t item_count);
 
     public:
         static void On_Register(some<Virtual::Machine_t*> v_machine);

@@ -8,14 +8,11 @@
 
 #include "intrinsic.h"
 
-namespace doticu_skylib { namespace doticu_quest_lookup {
+namespace doticu_skylib { namespace doticu_hide_your_quests {
 
     class Plugin_t :
         public SKSE_Plugin_t
     {
-    protected:
-        static Vector_t<some<Quest_t*>> quests;
-
     public:
         Plugin_t();
 
@@ -36,7 +33,7 @@ namespace doticu_skylib { namespace doticu_quest_lookup {
     public:
         Bool_t  Is_Active();
         Bool_t  Is_Installed();
-        Bool_t  Are_Quests_Running();
+        Bool_t  Is_Quest_Running();
     };
 
     extern Plugin_t plugin;

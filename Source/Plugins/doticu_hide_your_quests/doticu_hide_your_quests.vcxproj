@@ -38,11 +38,11 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="doticu_quest_lookup.props" />
+    <Import Project="doticu_hide_your_quests.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="doticu_quest_lookup.props" />
+    <Import Project="doticu_hide_your_quests.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -113,18 +113,24 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\consts.h" />
-    <ClInclude Include="include\enum_mcm_journal_mode.h" />
-    <ClInclude Include="include\enum_mcm_view.h" />
     <ClInclude Include="include\intrinsic.h" />
     <ClInclude Include="include\mcm.h" />
-    <ClInclude Include="include\mcm_journal.h" />
+    <ClInclude Include="include\mcm_current.h" />
+    <ClInclude Include="include\mcm_finished.h" />
+    <ClInclude Include="include\mcm_misc.h" />
+    <ClInclude Include="include\mcm_options.h" />
     <ClInclude Include="include\plugin.h" />
+    <ClInclude Include="include\quest_and_label.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\consts.cpp" />
     <ClCompile Include="src\mcm.cpp" />
-    <ClCompile Include="src\mcm_journal.cpp" />
+    <ClCompile Include="src\mcm_current.cpp" />
+    <ClCompile Include="src\mcm_finished.cpp" />
+    <ClCompile Include="src\mcm_misc.cpp" />
+    <ClCompile Include="src\mcm_options.cpp" />
     <ClCompile Include="src\plugin.cpp" />
+    <ClCompile Include="src\quest_and_label.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

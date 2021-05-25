@@ -14,11 +14,11 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
     class MCM_t;
 
-    class MCM_Misc_t :
+    class MCM_Titled_t :
         public Quest_t
     {
     public:
-        static constexpr const char*    PAGE_NAME           = Const::String::$MISC;
+        static constexpr const char*    PAGE_NAME           = Const::String::$TITLED;
         static constexpr Int_t          DEFAULT_PAGE_INDEX  = 0;
         static constexpr size_t         HEADERS_PER_PAGE    = 4;
         static constexpr size_t         ITEMS_PER_PAGE      = 20;
@@ -91,7 +91,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
     public:
         static some<MCM_t*>             MCM();
 
-        static some<MCM_Misc_t*>        Self();
+        static some<MCM_Titled_t*>      Self();
         static String_t                 Class_Name();
         static some<Virtual::Class_t*>  Class();
         static some<Virtual::Object_t*> Object();

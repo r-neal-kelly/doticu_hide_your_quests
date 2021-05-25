@@ -27,7 +27,9 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         {
         public:
             String_t                    current_page;
+
             Vector_t<maybe<Quest_t*>>   hidden_quests;
+            Vector_t<Int_t>             hidden_instances;
             Vector_t<Int_t>             hidden_objectives;
 
         public:
@@ -41,6 +43,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         public:
             Virtual::Variable_tt<String_t>&                     Current_Page();
             Virtual::Variable_tt<Vector_t<maybe<Quest_t*>>>&    Hidden_Quests();
+            Virtual::Variable_tt<Vector_t<Int_t>>&              Hidden_Instances();
             Virtual::Variable_tt<Vector_t<Int_t>>&              Hidden_Objectives();
 
         public:
@@ -49,11 +52,11 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         };
 
     public:
-        static std::mutex                           lock;
+        static std::mutex                                           lock;
 
-        static Save_State_t                         save_state;
+        static Save_State_t                                         save_state;
 
-        static std::unordered_map<Quest_t*, u16>    hidden_quests;
+        static std::unordered_map<Quest_t*, std::tuple<u32, u16>>   hidden_quests;
 
     public:
         static some<MCM_t*>             Self();
@@ -75,13 +78,10 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
                                            Int_t headers_per_page,
                                            Int_t items_per_page);
 
-        static Bool_t           Is_Objective_Hidable(some<Quest_Objective_t*> objective);
+        static Bool_t           Has_Hidden_Quest(some<Quest_t*> quest);
         static Bool_t           Has_Hidden_Objective(some<Quest_Objective_t*> objective);
-        static Bool_t           Has_Hidden_Objective(some<Quest_t*> quest);
-        static void             Add_Hidden_Objective(some<Quest_Objective_t*> objective);
-        static void             Add_Hidden_Objective(some<Quest_t*> quest);
-        static void             Remove_Hidden_Objective(some<Quest_Objective_t*> objective);
-        static void             Remove_Hidden_Objective(some<Quest_t*> quest);
+        static void             Add_Hidden_Quest(some<Quest_t*> quest);
+        static void             Remove_Hidden_Quest(some<Quest_t*> quest);
 
         static void             Enforce_Hidden_Objectives();
 
@@ -120,6 +120,12 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         Bool_t  On_Option_Keymap_Change(Virtual::Stack_ID_t stack_id, Int_t option, Int_t key, String_t conflict, String_t mod);
         Bool_t  On_Option_Default(Virtual::Stack_ID_t stack_id, Int_t option);
         Bool_t  On_Option_Highlight(Virtual::Stack_ID_t stack_id, Int_t option);
+
+    public:
+        template <typename T>
+        static void Build_Page(T& self, Virtual::Latent_ID_t&& latent_id, Bool_t is_refresh);
+        template <typename T>
+        static void Handle_On_Option_Select(T& self, Virtual::Latent_ID_t&& latent_id, Int_t option);
     };
 
 }}

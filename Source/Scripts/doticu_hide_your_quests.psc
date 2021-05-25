@@ -4,6 +4,7 @@ Scriptname doticu_hide_your_quests extends SKI_ConfigBase
 
 string  current_page        = ""
 Quest[] hidden_quests       = none
+int[]   hidden_instances    = none
 int[]   hidden_objectives   = none
 
 event OnConfigOpen() native

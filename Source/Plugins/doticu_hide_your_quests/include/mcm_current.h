@@ -7,6 +7,7 @@
 #include "doticu_skylib/quest.h"
 #include "doticu_skylib/virtual_latent_id.h"
 
+#include "consts.h"
 #include "quest_and_label.h"
 
 namespace doticu_skylib { namespace doticu_hide_your_quests {
@@ -17,9 +18,10 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         public Quest_t
     {
     public:
-        static constexpr Int_t  DEFAULT_PAGE_INDEX  = 0;
-        static constexpr size_t HEADERS_PER_PAGE    = 4;
-        static constexpr size_t ITEMS_PER_PAGE      = 20;
+        static constexpr const char*    PAGE_NAME           = Const::String::$CURRENT;
+        static constexpr Int_t          DEFAULT_PAGE_INDEX  = 0;
+        static constexpr size_t         HEADERS_PER_PAGE    = 4;
+        static constexpr size_t         ITEMS_PER_PAGE      = 20;
 
     public:
         class Save_State_t

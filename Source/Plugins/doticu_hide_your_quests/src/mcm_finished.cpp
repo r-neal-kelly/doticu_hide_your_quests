@@ -10,7 +10,7 @@
 #include "doticu_skylib/virtual_macros.h"
 
 #include "consts.h"
-#include "mcm.h"
+#include "mcm.inl"
 #include "mcm_finished.h"
 
 namespace doticu_skylib { namespace doticu_hide_your_quests {
@@ -74,7 +74,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
             for (size_t idx = 0, end = objectives.size(); idx < end; idx += 1) {
                 some<Quest_Objective_t*> objective = objectives[idx];
                 maybe<Quest_t*> quest = objective->quest;
-                if (quest && !Quest_And_Label_t::Has(this->items, quest()) && MCM_t::Is_Objective_Hidable(objective)) {
+                if (quest && !Quest_And_Label_t::Has(this->items, quest()) && objective->Is_Displayed()) {
                     if (quest->Is_Completed_Or_Failed()) {
                         this->items.push_back({ quest() });
                     }
@@ -226,96 +226,12 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
     void MCM_Finished_t::On_Page_Open(Virtual::Latent_ID_t&& latent_id, Bool_t is_refresh)
     {
-        some<MCM_t*> mcm = MCM();
-
-        Reset_Option_State();
-
-        if (!is_refresh) {
-            Reset_Items_State();
-        }
-
-        mcm->Current_Cursor_Position() = 0;
-        mcm->Current_Cursor_Mode() = doticu_mcmlib::Cursor_e::LEFT_TO_RIGHT;
-
-        const Vector_t<Quest_And_Label_t>& items = items_state.Items();
-        size_t item_count = items.size();
-        if (item_count > 0) {
-            Int_t page_count = items_state.Page_Count();
-            Int_t page_index = items_state.Page_Index();
-
-            mcm->Title_Text(mcm->Page_Title(Const::String::$FINISHED, item_count, page_index, page_count));
-
-            if (page_count > 1) {
-                option_state.previous = mcm->Add_Text_Option(Const::String::CENTER_GO_TO_PREVIOUS_PAGE, "");
-                option_state.next = mcm->Add_Text_Option(Const::String::CENTER_GO_TO_NEXT_PAGE, "");
-            } else {
-                option_state.previous = mcm->Add_Text_Option(Const::String::CENTER_GO_TO_PREVIOUS_PAGE, "", doticu_mcmlib::Flag_e::DISABLE);
-                option_state.next = mcm->Add_Text_Option(Const::String::CENTER_GO_TO_NEXT_PAGE, "", doticu_mcmlib::Flag_e::DISABLE);
-            }
-
-            mcm->Add_Header_Option("");
-            mcm->Add_Header_Option("");
-
-            Int_t idx = ITEMS_PER_PAGE * page_index;
-            Int_t end = idx + ITEMS_PER_PAGE;
-            if (end > item_count) {
-                end = item_count;
-            }
-            for (; idx < end; idx += 1) {
-                const Quest_And_Label_t& item = items[idx];
-                if (item.quest->Is_Completed_Or_Failed()) {
-                    mcm->Add_Toggle_Option(item.label, !mcm->Has_Hidden_Objective(item.quest));
-                } else {
-                    mcm->Add_Toggle_Option(item.label, !mcm->Has_Hidden_Objective(item.quest));
-                }
-            }
-        } else {
-            mcm->Title_Text(mcm->Page_Title(Const::String::CURRENT, 0, 0, 1));
-
-            option_state.previous = mcm->Add_Text_Option(Const::String::CENTER_GO_TO_PREVIOUS_PAGE, "", doticu_mcmlib::Flag_e::DISABLE);
-            option_state.next = mcm->Add_Text_Option(Const::String::CENTER_GO_TO_NEXT_PAGE, "", doticu_mcmlib::Flag_e::DISABLE);
-
-            mcm->Add_Header_Option("");
-            mcm->Add_Header_Option("");
-
-            mcm->Add_Header_Option(Const::String::NO_QUESTS);
-        }
+        MCM_t::Build_Page<MCM_Finished_t>(*Self(), std::move(latent_id), is_refresh);
     }
 
     void MCM_Finished_t::On_Option_Select(Virtual::Latent_ID_t&& latent_id, Int_t option)
     {
-        some<MCM_t*> mcm = MCM();
-
-        if (option == option_state.previous) {
-            mcm->Disable_Option(option);
-            items_state.Previous_Page();
-            mcm->Reset_Page();
-        } else if (option == option_state.next) {
-            mcm->Disable_Option(option);
-            items_state.Next_Page();
-            mcm->Reset_Page();
-        } else {
-            const Vector_t<Quest_And_Label_t> items = items_state.Items();
-            size_t item_count = items.size();
-            maybe<size_t> item_index = mcm->Item_Index(
-                option,
-                item_count,
-                items_state.Page_Index(),
-                HEADERS_PER_PAGE,
-                ITEMS_PER_PAGE
-            );
-            if (item_index.Has_Value()) {
-                some<Quest_t*> quest = items[item_index.Value()].quest;
-                if (mcm->Has_Hidden_Objective(quest)) {
-                    mcm->Remove_Hidden_Objective(quest);
-                    mcm->Toggle(option, true);
-                } else {
-                    mcm->Add_Hidden_Objective(quest);
-                    mcm->Toggle(option, false);
-                }
-                mcm->Enforce_Hidden_Objectives();
-            }
-        }
+        MCM_t::Handle_On_Option_Select<MCM_Finished_t>(*Self(), std::move(latent_id), option);
     }
 
     void MCM_Finished_t::On_Option_Menu_Open(Virtual::Latent_ID_t&& latent_id, Int_t option)

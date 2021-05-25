@@ -11,55 +11,55 @@
 
 #include "consts.h"
 #include "mcm.inl"
-#include "mcm_misc.h"
+#include "mcm_titled.h"
 
 namespace doticu_skylib { namespace doticu_hide_your_quests {
 
-    MCM_Misc_t::Save_State_t::Save_State_t() :
+    MCM_Titled_t::Save_State_t::Save_State_t() :
         page_index(DEFAULT_PAGE_INDEX)
     {
     }
 
-    MCM_Misc_t::Save_State_t::~Save_State_t()
+    MCM_Titled_t::Save_State_t::~Save_State_t()
     {
     }
 
-    Virtual::Variable_tt<Int_t>& MCM_Misc_t::Save_State_t::Page_Index()
+    Virtual::Variable_tt<Int_t>& MCM_Titled_t::Save_State_t::Page_Index()
     {
         DEFINE_VARIABLE_REFERENCE(Int_t, "page_index");
     }
 
-    void MCM_Misc_t::Save_State_t::Read()
+    void MCM_Titled_t::Save_State_t::Read()
     {
         this->page_index = Page_Index();
     }
 
-    void MCM_Misc_t::Save_State_t::Write()
+    void MCM_Titled_t::Save_State_t::Write()
     {
         Page_Index() = static_cast<Int_t>(this->page_index);
     }
 
-    MCM_Misc_t::Option_State_t::Option_State_t() :
+    MCM_Titled_t::Option_State_t::Option_State_t() :
         previous(-1),
         next(-1)
     {
     }
 
-    MCM_Misc_t::Option_State_t::~Option_State_t()
+    MCM_Titled_t::Option_State_t::~Option_State_t()
     {
     }
 
-    MCM_Misc_t::Items_State_t::Items_State_t() :
+    MCM_Titled_t::Items_State_t::Items_State_t() :
         items(),
         do_update(true)
     {
     }
 
-    MCM_Misc_t::Items_State_t::~Items_State_t()
+    MCM_Titled_t::Items_State_t::~Items_State_t()
     {
     }
 
-    const Vector_t<Quest_And_Label_t>& MCM_Misc_t::Items_State_t::Items()
+    const Vector_t<Quest_And_Label_t>& MCM_Titled_t::Items_State_t::Items()
     {
         if (this->do_update) {
             this->do_update = false;
@@ -75,7 +75,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
                 some<Quest_Objective_t*> objective = objectives[idx];
                 maybe<Quest_t*> quest = objective->quest;
                 if (quest && !Quest_And_Label_t::Has(this->items, quest()) && objective->Is_Displayed()) {
-                    if (quest->quest_type == Quest_Type_e::MISC) {
+                    if (quest->quest_type != Quest_Type_e::MISC) {
                         this->items.push_back({ quest() });
                     }
                 }
@@ -87,76 +87,76 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         return this->items;
     }
 
-    size_t MCM_Misc_t::Items_State_t::Page_Count()
+    size_t MCM_Titled_t::Items_State_t::Page_Count()
     {
         return MCM_t::Page_Count(this->items.size(), ITEMS_PER_PAGE);
     }
 
-    size_t MCM_Misc_t::Items_State_t::Page_Index()
+    size_t MCM_Titled_t::Items_State_t::Page_Index()
     {
         return MCM_t::Page_Index(save_state.page_index, Page_Count());
     }
 
-    size_t MCM_Misc_t::Items_State_t::Previous_Page()
+    size_t MCM_Titled_t::Items_State_t::Previous_Page()
     {
         return MCM_t::Previous_Page(save_state.page_index, Page_Count(), this->items.size());
     }
 
-    size_t MCM_Misc_t::Items_State_t::Next_Page()
+    size_t MCM_Titled_t::Items_State_t::Next_Page()
     {
         return MCM_t::Next_Page(save_state.page_index, Page_Count(), this->items.size());
     }
 
-    MCM_Misc_t::Save_State_t    MCM_Misc_t::save_state;
-    MCM_Misc_t::Option_State_t  MCM_Misc_t::option_state;
-    MCM_Misc_t::Items_State_t   MCM_Misc_t::items_state;
+    MCM_Titled_t::Save_State_t      MCM_Titled_t::save_state;
+    MCM_Titled_t::Option_State_t    MCM_Titled_t::option_state;
+    MCM_Titled_t::Items_State_t     MCM_Titled_t::items_state;
 
-    some<MCM_t*> MCM_Misc_t::MCM()
+    some<MCM_t*> MCM_Titled_t::MCM()
     {
         return MCM_t::Self();
     }
 
-    some<MCM_Misc_t*> MCM_Misc_t::Self()
+    some<MCM_Titled_t*> MCM_Titled_t::Self()
     {
         return Const::Quest::MCM();
     }
 
-    String_t MCM_Misc_t::Class_Name()
+    String_t MCM_Titled_t::Class_Name()
     {
-        DEFINE_CLASS_NAME("doticu_hide_your_quests_misc");
+        DEFINE_CLASS_NAME("doticu_hide_your_quests_titled");
     }
 
-    some<Virtual::Class_t*> MCM_Misc_t::Class()
+    some<Virtual::Class_t*> MCM_Titled_t::Class()
     {
         DEFINE_CLASS();
     }
 
-    some<Virtual::Object_t*> MCM_Misc_t::Object()
+    some<Virtual::Object_t*> MCM_Titled_t::Object()
     {
         DEFINE_COMPONENT_OBJECT_METHOD(Self()());
     }
 
-    void MCM_Misc_t::Reset_Save_State()
+    void MCM_Titled_t::Reset_Save_State()
     {
         save_state.~Save_State_t();
         new (&save_state) Save_State_t;
     }
 
-    void MCM_Misc_t::Reset_Option_State()
+    void MCM_Titled_t::Reset_Option_State()
     {
         option_state.~Option_State_t();
         new (&option_state) Option_State_t;
     }
 
-    void MCM_Misc_t::Reset_Items_State()
+    void MCM_Titled_t::Reset_Items_State()
     {
         items_state.~Items_State_t();
         new (&items_state) Items_State_t;
     }
 
-    void MCM_Misc_t::On_Register(some<Virtual::Machine_t*> v_machine)
+    void MCM_Titled_t::On_Register(some<Virtual::Machine_t*> v_machine)
     {
-        using type_name = MCM_Misc_t;
+        using type_name = MCM_Titled_t;
 
         SKYLIB_ASSERT_SOME(v_machine);
 
@@ -179,27 +179,27 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         #undef METHOD
     }
 
-    void MCM_Misc_t::On_After_New_Game()
+    void MCM_Titled_t::On_After_New_Game()
     {
         Reset_Save_State();
         Reset_Option_State();
         Reset_Items_State();
     }
 
-    void MCM_Misc_t::On_Before_Save_Game()
+    void MCM_Titled_t::On_Before_Save_Game()
     {
         save_state.Write();
     }
 
-    void MCM_Misc_t::On_After_Save_Game()
+    void MCM_Titled_t::On_After_Save_Game()
     {
     }
 
-    void MCM_Misc_t::On_Before_Load_Game()
+    void MCM_Titled_t::On_Before_Load_Game()
     {
     }
 
-    void MCM_Misc_t::On_After_Load_Game()
+    void MCM_Titled_t::On_After_Load_Game()
     {
         Reset_Save_State();
         Reset_Option_State();
@@ -208,61 +208,61 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         save_state.Read();
     }
 
-    void MCM_Misc_t::On_Update()
+    void MCM_Titled_t::On_Update()
     {
     }
 
-    void MCM_Misc_t::On_Update_Version(const Version_t<u16> version_to_update)
+    void MCM_Titled_t::On_Update_Version(const Version_t<u16> version_to_update)
     {
     }
 
-    void MCM_Misc_t::On_Config_Open()
+    void MCM_Titled_t::On_Config_Open()
     {
     }
 
-    void MCM_Misc_t::On_Config_Close()
+    void MCM_Titled_t::On_Config_Close()
     {
     }
 
-    void MCM_Misc_t::On_Page_Open(Virtual::Latent_ID_t&& latent_id, Bool_t is_refresh)
+    void MCM_Titled_t::On_Page_Open(Virtual::Latent_ID_t&& latent_id, Bool_t is_refresh)
     {
-        MCM_t::Build_Page<MCM_Misc_t>(*Self(), std::move(latent_id), is_refresh);
+        MCM_t::Build_Page<MCM_Titled_t>(*Self(), std::move(latent_id), is_refresh);
     }
 
-    void MCM_Misc_t::On_Option_Select(Virtual::Latent_ID_t&& latent_id, Int_t option)
+    void MCM_Titled_t::On_Option_Select(Virtual::Latent_ID_t&& latent_id, Int_t option)
     {
-        MCM_t::Handle_On_Option_Select<MCM_Misc_t>(*Self(), std::move(latent_id), option);
+        MCM_t::Handle_On_Option_Select<MCM_Titled_t>(*Self(), std::move(latent_id), option);
     }
 
-    void MCM_Misc_t::On_Option_Menu_Open(Virtual::Latent_ID_t&& latent_id, Int_t option)
-    {
-    }
-
-    void MCM_Misc_t::On_Option_Menu_Accept(Virtual::Latent_ID_t&& latent_id, Int_t option, Int_t index)
+    void MCM_Titled_t::On_Option_Menu_Open(Virtual::Latent_ID_t&& latent_id, Int_t option)
     {
     }
 
-    void MCM_Misc_t::On_Option_Slider_Open(Virtual::Latent_ID_t&& latent_id, Int_t option)
+    void MCM_Titled_t::On_Option_Menu_Accept(Virtual::Latent_ID_t&& latent_id, Int_t option, Int_t index)
     {
     }
 
-    void MCM_Misc_t::On_Option_Slider_Accept(Virtual::Latent_ID_t&& latent_id, Int_t option, Float_t value)
+    void MCM_Titled_t::On_Option_Slider_Open(Virtual::Latent_ID_t&& latent_id, Int_t option)
     {
     }
 
-    void MCM_Misc_t::On_Option_Input_Accept(Virtual::Latent_ID_t&& latent_id, Int_t option, String_t value)
+    void MCM_Titled_t::On_Option_Slider_Accept(Virtual::Latent_ID_t&& latent_id, Int_t option, Float_t value)
     {
     }
 
-    void MCM_Misc_t::On_Option_Keymap_Change(Virtual::Latent_ID_t&& latent_id, Int_t option, Int_t key, String_t conflict, String_t mod)
+    void MCM_Titled_t::On_Option_Input_Accept(Virtual::Latent_ID_t&& latent_id, Int_t option, String_t value)
     {
     }
 
-    void MCM_Misc_t::On_Option_Default(Virtual::Latent_ID_t&& latent_id, Int_t option)
+    void MCM_Titled_t::On_Option_Keymap_Change(Virtual::Latent_ID_t&& latent_id, Int_t option, Int_t key, String_t conflict, String_t mod)
     {
     }
 
-    void MCM_Misc_t::On_Option_Highlight(Virtual::Latent_ID_t&& latent_id, Int_t option)
+    void MCM_Titled_t::On_Option_Default(Virtual::Latent_ID_t&& latent_id, Int_t option)
+    {
+    }
+
+    void MCM_Titled_t::On_Option_Highlight(Virtual::Latent_ID_t&& latent_id, Int_t option)
     {
 
     }

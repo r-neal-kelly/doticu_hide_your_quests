@@ -253,6 +253,13 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
     void MCM_Options_t::On_Option_Highlight(Virtual::Latent_ID_t&& latent_id, Int_t option)
     {
+        if (option == option_state.reset) {
+            MCM()->Current_Info_Text() = Const::String::HIGHLIGHT_OPTIONS_RESET;
+        } else if (option == option_state.show_new_objectives) {
+            MCM()->Current_Info_Text() = Const::String::HIGHLIGHT_SHOW_NEW_OBJECTIVES;
+        } else if (option == option_state.show_finished_quests) {
+            MCM()->Current_Info_Text() = Const::String::HIGHLIGHT_SHOW_FINISHED_QUESTS;
+        }
     }
 
 }}

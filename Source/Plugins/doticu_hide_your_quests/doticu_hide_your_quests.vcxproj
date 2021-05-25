@@ -119,6 +119,7 @@
     <ClInclude Include="include\mcm_finished.h" />
     <ClInclude Include="include\mcm_misc.h" />
     <ClInclude Include="include\mcm_options.h" />
+    <ClInclude Include="include\mcm_titled.h" />
     <ClInclude Include="include\plugin.h" />
     <ClInclude Include="include\quest_and_label.h" />
   </ItemGroup>
@@ -129,8 +130,12 @@
     <ClCompile Include="src\mcm_finished.cpp" />
     <ClCompile Include="src\mcm_misc.cpp" />
     <ClCompile Include="src\mcm_options.cpp" />
+    <ClCompile Include="src\mcm_titled.cpp" />
     <ClCompile Include="src\plugin.cpp" />
     <ClCompile Include="src\quest_and_label.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="include\mcm.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

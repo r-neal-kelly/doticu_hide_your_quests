@@ -38,7 +38,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
     void Plugin_t::On_After_Load_Data()
     {
-        Start_Updating(std::chrono::milliseconds(1000));
+        Start_Updating(std::chrono::milliseconds(2000));
     }
 
     void Plugin_t::On_After_New_Game()

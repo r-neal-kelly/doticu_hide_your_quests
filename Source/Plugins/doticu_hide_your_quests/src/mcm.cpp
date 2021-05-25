@@ -16,12 +16,15 @@
 #include "mcm_finished.h"
 #include "mcm_misc.h"
 #include "mcm_options.h"
+#include "mcm_titled.h"
 
 namespace doticu_skylib { namespace doticu_hide_your_quests {
 
     MCM_t::Save_State_t::Save_State_t() :
         current_page(DEFAULT_CURRENT_PAGE),
+
         hidden_quests(0),
+        hidden_instances(0),
         hidden_objectives(0)
     {
     }
@@ -40,6 +43,11 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         DEFINE_VARIABLE_REFERENCE(Vector_t<maybe<Quest_t*>>, "hidden_quests");
     }
 
+    Virtual::Variable_tt<Vector_t<Int_t>>& MCM_t::Save_State_t::Hidden_Instances()
+    {
+        DEFINE_VARIABLE_REFERENCE(Vector_t<Int_t>, "hidden_instances");
+    }
+
     Virtual::Variable_tt<Vector_t<Int_t>>& MCM_t::Save_State_t::Hidden_Objectives()
     {
         DEFINE_VARIABLE_REFERENCE(Vector_t<Int_t>, "hidden_objectives");
@@ -48,24 +56,30 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
     void MCM_t::Save_State_t::Read()
     {
         this->current_page = Current_Page();
+
         this->hidden_quests = Hidden_Quests();
+        this->hidden_instances = Hidden_Instances();
         this->hidden_objectives = Hidden_Objectives();
 
-        this->hidden_objectives.resize(this->hidden_quests.size(), -1);
+        size_t hidden_quest_count = this->hidden_quests.size();
+        this->hidden_instances.resize(hidden_quest_count, 0);
+        this->hidden_objectives.resize(hidden_quest_count, 0);
     }
 
     void MCM_t::Save_State_t::Write()
     {
         Current_Page() = this->current_page;
+
         Hidden_Quests() = this->hidden_quests;
+        Hidden_Instances() = this->hidden_instances;
         Hidden_Objectives() = this->hidden_objectives;
     }
 
-    std::mutex                          MCM_t::lock;
+    std::mutex                                          MCM_t::lock;
 
-    MCM_t::Save_State_t                 MCM_t::save_state;
+    MCM_t::Save_State_t                                 MCM_t::save_state;
 
-    std::unordered_map<Quest_t*, u16>   MCM_t::hidden_quests;
+    std::unordered_map<Quest_t*, std::tuple<u32, u16>>  MCM_t::hidden_quests;
 
     some<MCM_t*> MCM_t::Self()
     {
@@ -150,18 +164,22 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         }
     }
 
-    Bool_t MCM_t::Is_Objective_Hidable(some<Quest_Objective_t*> objective)
+    Bool_t MCM_t::Has_Hidden_Quest(some<Quest_t*> quest)
     {
-        SKYLIB_ASSERT_SOME(objective);
-        SKYLIB_ASSERT_SOME(objective->quest);
+        SKYLIB_ASSERT_SOME(quest);
 
-        if (objective->quest->quest_type == Quest_Type_e::MISC) {
-            return objective->state == Quest_Objective_State_e::DISPLAYED;
-        } else if (objective->quest->Is_Displayed_In_HUD()) {
-            return
-                objective->state == Quest_Objective_State_e::COMPLETED_AND_DISPLAYED ||
-                objective->state == Quest_Objective_State_e::FAILED_AND_DISPLAYED ||
-                objective->state == Quest_Objective_State_e::DISPLAYED;
+        if (hidden_quests.count(quest()) > 0) {
+            if (MCM_Options_t::Do_Show_New_Objectives()) {
+                maybe<Player_Objective_t> objective = Player_t::Self()->Highest_Displayed_Player_Objective(quest);
+                if (objective.Has_Value()) {
+                    std::tuple<u32, u16>& tuple = hidden_quests[quest()];
+                    return std::get<0>(tuple) >= objective().instance_id && std::get<1>(tuple) >= objective().objective->index;
+                } else {
+                    return true;
+                }
+            } else {
+                return true;
+            }
         } else {
             return false;
         }
@@ -174,7 +192,8 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
         if (hidden_quests.count(objective->quest()) > 0) {
             if (MCM_Options_t::Do_Show_New_Objectives()) {
-                return hidden_quests[objective->quest()] >= objective->index;
+                std::tuple<u32, u16>& tuple = hidden_quests[objective->quest()];
+                return std::get<0>(tuple) >= objective->quest->current_instance_id && std::get<1>(tuple) >= objective->index;
             } else {
                 return true;
             }
@@ -183,70 +202,23 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         }
     }
 
-    Bool_t MCM_t::Has_Hidden_Objective(some<Quest_t*> quest)
+    void MCM_t::Add_Hidden_Quest(some<Quest_t*> quest)
     {
         SKYLIB_ASSERT_SOME(quest);
 
-        if (hidden_quests.count(quest()) > 0) {
-            if (MCM_Options_t::Do_Show_New_Objectives()) {
-                maybe<Player_Objective_t> objective = Player_t::Self()->Highest_Player_Objective(quest);
-                if (objective.Has_Value()) {
-                    return hidden_quests[quest()] >= objective().objective->index;
-                } else {
-                    return true;
-                }
-            } else {
-                return true;
-            }
-        } else {
-            return false;
-        }
-    }
-
-    void MCM_t::Add_Hidden_Objective(some<Quest_Objective_t*> objective)
-    {
-        SKYLIB_ASSERT_SOME(objective);
-        SKYLIB_ASSERT_SOME(objective->quest);
-
-        if (MCM_Options_t::Do_Show_New_Objectives()) {
-            hidden_quests[objective->quest()] = objective->index;
-        } else {
-            Add_Hidden_Objective(objective->quest());
-        }
-    }
-
-    void MCM_t::Add_Hidden_Objective(some<Quest_t*> quest)
-    {
-        SKYLIB_ASSERT_SOME(quest);
-
-        maybe<Player_Objective_t> objective = Player_t::Self()->Highest_Player_Objective(quest);
+        maybe<Player_Objective_t> objective = Player_t::Self()->Highest_Displayed_Player_Objective(quest);
         if (objective.Has_Value()) {
-            hidden_quests[quest()] = objective().objective->index;
+            std::tuple<u32, u16>& tuple = hidden_quests[quest()];
+            std::get<0>(tuple) = objective().instance_id;
+            std::get<1>(tuple) = objective().objective->index;
         } else {
-            hidden_quests[quest()] = 0;
+            std::tuple<u32, u16>& tuple = hidden_quests[quest()];
+            std::get<0>(tuple) = quest->current_instance_id;
+            std::get<1>(tuple) = 0;
         }
     }
 
-    void MCM_t::Remove_Hidden_Objective(some<Quest_Objective_t*> objective)
-    {
-        SKYLIB_ASSERT_SOME(objective);
-        SKYLIB_ASSERT_SOME(objective->quest);
-
-        if (MCM_Options_t::Do_Show_New_Objectives()) {
-            maybe<Quest_Objective_Index_t> lowest_index = objective->quest->Lowest_Objective_Index();
-            SKYLIB_ASSERT_SOME(lowest_index.Has_Value());
-
-            if (objective->index > lowest_index.Value()) {
-                hidden_quests[objective->quest()] = objective->index - 1;
-            } else {
-                hidden_quests.erase(objective->quest());
-            }
-        } else {
-            Remove_Hidden_Objective(objective->quest());
-        }
-    }
-
-    void MCM_t::Remove_Hidden_Objective(some<Quest_t*> quest)
+    void MCM_t::Remove_Hidden_Quest(some<Quest_t*> quest)
     {
         SKYLIB_ASSERT_SOME(quest);
 
@@ -262,7 +234,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
             virtual Iterator_e operator ()(some<Player_Objective_t*> it) override
             {
                 if (it->objective) {
-                    if (it->objective->quest && Is_Objective_Hidable(it->objective())) {
+                    if (it->objective->Is_Displayed()) {
                         if (!MCM_Options_t::Do_Show_Finished_Quests() && it->objective->quest->Is_Completed_Or_Failed()) {
                             it->state = Quest_Objective_State_e::DORMANT;
                         } else if (Has_Hidden_Objective(it->objective())) {
@@ -369,6 +341,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
         MCM_Current_t::On_Register(v_machine);
         MCM_Finished_t::On_Register(v_machine);
+        MCM_Titled_t::On_Register(v_machine);
         MCM_Misc_t::On_Register(v_machine);
         MCM_Options_t::On_Register(v_machine);
 
@@ -384,6 +357,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
         MCM_Current_t::On_After_New_Game();
         MCM_Finished_t::On_After_New_Game();
+        MCM_Titled_t::On_After_New_Game();
         MCM_Misc_t::On_After_New_Game();
         MCM_Options_t::On_After_New_Game();
     }
@@ -392,18 +366,21 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
     {
         std::lock_guard<std::mutex> locker(lock);
 
-        const size_t count = save_state.hidden_quests.size();
-        save_state.hidden_quests.reserve(count);
-        save_state.hidden_objectives.reserve(count);
+        const size_t hidden_quest_count = save_state.hidden_quests.size();
+        save_state.hidden_quests.reserve(hidden_quest_count);
+        save_state.hidden_instances.reserve(hidden_quest_count);
+        save_state.hidden_objectives.reserve(hidden_quest_count);
         save_state.hidden_quests.clear();
+        save_state.hidden_instances.clear();
         save_state.hidden_objectives.clear();
 
         for (auto it = hidden_quests.begin(), end = hidden_quests.end(); it != end; ++it) {
             maybe<Quest_t*> quest = it->first;
-            u16 objective_index = it->second;
+            std::tuple<u32, u16> tuple = it->second;
             if (quest) {
                 save_state.hidden_quests.push_back(quest);
-                save_state.hidden_objectives.push_back(objective_index);
+                save_state.hidden_instances.push_back(std::get<0>(tuple));
+                save_state.hidden_objectives.push_back(std::get<1>(tuple));
             }
         }
 
@@ -411,6 +388,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
         MCM_Current_t::On_Before_Save_Game();
         MCM_Finished_t::On_Before_Save_Game();
+        MCM_Titled_t::On_Before_Save_Game();
         MCM_Misc_t::On_Before_Save_Game();
         MCM_Options_t::On_Before_Save_Game();
     }
@@ -421,6 +399,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
         MCM_Current_t::On_After_Save_Game();
         MCM_Finished_t::On_After_Save_Game();
+        MCM_Titled_t::On_After_Save_Game();
         MCM_Misc_t::On_After_Save_Game();
         MCM_Options_t::On_After_Save_Game();
     }
@@ -431,6 +410,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
         MCM_Current_t::On_Before_Load_Game();
         MCM_Finished_t::On_Before_Load_Game();
+        MCM_Titled_t::On_Before_Load_Game();
         MCM_Misc_t::On_Before_Load_Game();
         MCM_Options_t::On_Before_Load_Game();
     }
@@ -453,9 +433,9 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
             if (quest) {
                 maybe<Quest_Objective_t*> objective = quest->Objective(save_state.hidden_objectives[idx]);
                 if (objective) {
-                    hidden_quests[quest()] = objective->index;
+                    hidden_quests[quest()] = std::make_tuple(save_state.hidden_instances[idx], objective->index);
                 } else {
-                    hidden_quests[quest()] = 0;
+                    hidden_quests[quest()] = std::make_tuple(save_state.hidden_instances[idx], 0);
                 }
             }
         }
@@ -464,6 +444,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
         MCM_Current_t::On_After_Load_Game();
         MCM_Finished_t::On_After_Load_Game();
+        MCM_Titled_t::On_After_Load_Game();
         MCM_Misc_t::On_After_Load_Game();
         MCM_Options_t::On_After_Load_Game();
     }
@@ -478,6 +459,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
         MCM_Current_t::On_Update();
         MCM_Finished_t::On_Update();
+        MCM_Titled_t::On_Update();
         MCM_Misc_t::On_Update();
         MCM_Options_t::On_Update();
     }
@@ -488,6 +470,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
         MCM_Current_t::On_Update_Version(version_to_update);
         MCM_Finished_t::On_Update_Version(version_to_update);
+        MCM_Titled_t::On_Update_Version(version_to_update);
         MCM_Misc_t::On_Update_Version(version_to_update);
         MCM_Options_t::On_Update_Version(version_to_update);
     }
@@ -512,15 +495,17 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         Virtual::Latent_ID_t latent_id(stack_id);
 
         Vector_t<String_t> pages;
-        pages.reserve(4);
+        pages.reserve(5);
         pages.push_back(Const::String::CURRENT);
-        pages.push_back(Const::String::MISC);
         pages.push_back(Const::String::FINISHED);
+        pages.push_back(Const::String::TITLED);
+        pages.push_back(Const::String::MISC);
         pages.push_back(Const::String::OPTIONS);
         Pages() = pages;
 
         MCM_Current_t::On_Config_Open();
         MCM_Finished_t::On_Config_Open();
+        MCM_Titled_t::On_Config_Open();
         MCM_Misc_t::On_Config_Open();
         MCM_Options_t::On_Config_Open();
 
@@ -535,6 +520,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
         MCM_Current_t::On_Config_Close();
         MCM_Finished_t::On_Config_Close();
+        MCM_Titled_t::On_Config_Close();
         MCM_Misc_t::On_Config_Close();
         MCM_Options_t::On_Config_Close();
 
@@ -550,8 +536,9 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         Bool_t is_refresh = Current_Page(page);
 
         if (page == Const::String::CURRENT)         MCM_Current_t::On_Page_Open(std::move(latent_id), is_refresh);
-        else if (page == Const::String::MISC)       MCM_Misc_t::On_Page_Open(std::move(latent_id), is_refresh);
         else if (page == Const::String::FINISHED)   MCM_Finished_t::On_Page_Open(std::move(latent_id), is_refresh);
+        else if (page == Const::String::TITLED)     MCM_Titled_t::On_Page_Open(std::move(latent_id), is_refresh);
+        else if (page == Const::String::MISC)       MCM_Misc_t::On_Page_Open(std::move(latent_id), is_refresh);
         else if (page == Const::String::OPTIONS)    MCM_Options_t::On_Page_Open(std::move(latent_id), is_refresh);
         else                                        MCM_Current_t::On_Page_Open(std::move(latent_id), is_refresh);
 
@@ -567,8 +554,9 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         String_t page = save_state.current_page;
 
         if (page == Const::String::CURRENT)         MCM_Current_t::On_Option_Select(std::move(latent_id), option);
-        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Select(std::move(latent_id), option);
         else if (page == Const::String::FINISHED)   MCM_Finished_t::On_Option_Select(std::move(latent_id), option);
+        else if (page == Const::String::TITLED)     MCM_Titled_t::On_Option_Select(std::move(latent_id), option);
+        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Select(std::move(latent_id), option);
         else if (page == Const::String::OPTIONS)    MCM_Options_t::On_Option_Select(std::move(latent_id), option);
         else                                        MCM_Current_t::On_Option_Select(std::move(latent_id), option);
 
@@ -584,8 +572,9 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         String_t page = save_state.current_page;
 
         if (page == Const::String::CURRENT)         MCM_Current_t::On_Option_Menu_Open(std::move(latent_id), option);
-        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Menu_Open(std::move(latent_id), option);
         else if (page == Const::String::FINISHED)   MCM_Finished_t::On_Option_Menu_Open(std::move(latent_id), option);
+        else if (page == Const::String::TITLED)     MCM_Titled_t::On_Option_Menu_Open(std::move(latent_id), option);
+        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Menu_Open(std::move(latent_id), option);
         else if (page == Const::String::OPTIONS)    MCM_Options_t::On_Option_Menu_Open(std::move(latent_id), option);
         else                                        MCM_Current_t::On_Option_Menu_Open(std::move(latent_id), option);
 
@@ -601,8 +590,9 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         String_t page = save_state.current_page;
 
         if (page == Const::String::CURRENT)         MCM_Current_t::On_Option_Menu_Accept(std::move(latent_id), option, index);
-        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Menu_Accept(std::move(latent_id), option, index);
         else if (page == Const::String::FINISHED)   MCM_Finished_t::On_Option_Menu_Accept(std::move(latent_id), option, index);
+        else if (page == Const::String::TITLED)     MCM_Titled_t::On_Option_Menu_Accept(std::move(latent_id), option, index);
+        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Menu_Accept(std::move(latent_id), option, index);
         else if (page == Const::String::OPTIONS)    MCM_Options_t::On_Option_Menu_Accept(std::move(latent_id), option, index);
         else                                        MCM_Current_t::On_Option_Menu_Accept(std::move(latent_id), option, index);
 
@@ -618,8 +608,9 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         String_t page = save_state.current_page;
 
         if (page == Const::String::CURRENT)         MCM_Current_t::On_Option_Slider_Open(std::move(latent_id), option);
-        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Slider_Open(std::move(latent_id), option);
         else if (page == Const::String::FINISHED)   MCM_Finished_t::On_Option_Slider_Open(std::move(latent_id), option);
+        else if (page == Const::String::TITLED)     MCM_Titled_t::On_Option_Slider_Open(std::move(latent_id), option);
+        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Slider_Open(std::move(latent_id), option);
         else if (page == Const::String::OPTIONS)    MCM_Options_t::On_Option_Slider_Open(std::move(latent_id), option);
         else                                        MCM_Current_t::On_Option_Slider_Open(std::move(latent_id), option);
 
@@ -635,8 +626,9 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         String_t page = save_state.current_page;
 
         if (page == Const::String::CURRENT)         MCM_Current_t::On_Option_Slider_Accept(std::move(latent_id), option, value);
-        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Slider_Accept(std::move(latent_id), option, value);
         else if (page == Const::String::FINISHED)   MCM_Finished_t::On_Option_Slider_Accept(std::move(latent_id), option, value);
+        else if (page == Const::String::TITLED)     MCM_Titled_t::On_Option_Slider_Accept(std::move(latent_id), option, value);
+        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Slider_Accept(std::move(latent_id), option, value);
         else if (page == Const::String::OPTIONS)    MCM_Options_t::On_Option_Slider_Accept(std::move(latent_id), option, value);
         else                                        MCM_Current_t::On_Option_Slider_Accept(std::move(latent_id), option, value);
 
@@ -652,8 +644,9 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         String_t page = save_state.current_page;
 
         if (page == Const::String::CURRENT)         MCM_Current_t::On_Option_Input_Accept(std::move(latent_id), option, value);
-        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Input_Accept(std::move(latent_id), option, value);
         else if (page == Const::String::FINISHED)   MCM_Finished_t::On_Option_Input_Accept(std::move(latent_id), option, value);
+        else if (page == Const::String::TITLED)     MCM_Titled_t::On_Option_Input_Accept(std::move(latent_id), option, value);
+        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Input_Accept(std::move(latent_id), option, value);
         else if (page == Const::String::OPTIONS)    MCM_Options_t::On_Option_Input_Accept(std::move(latent_id), option, value);
         else                                        MCM_Current_t::On_Option_Input_Accept(std::move(latent_id), option, value);
 
@@ -669,8 +662,9 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         String_t page = save_state.current_page;
 
         if (page == Const::String::CURRENT)         MCM_Current_t::On_Option_Keymap_Change(std::move(latent_id), option, key, conflict, mod);
-        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Keymap_Change(std::move(latent_id), option, key, conflict, mod);
         else if (page == Const::String::FINISHED)   MCM_Finished_t::On_Option_Keymap_Change(std::move(latent_id), option, key, conflict, mod);
+        else if (page == Const::String::TITLED)     MCM_Titled_t::On_Option_Keymap_Change(std::move(latent_id), option, key, conflict, mod);
+        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Keymap_Change(std::move(latent_id), option, key, conflict, mod);
         else if (page == Const::String::OPTIONS)    MCM_Options_t::On_Option_Keymap_Change(std::move(latent_id), option, key, conflict, mod);
         else                                        MCM_Current_t::On_Option_Keymap_Change(std::move(latent_id), option, key, conflict, mod);
 
@@ -686,8 +680,9 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         String_t page = save_state.current_page;
 
         if (page == Const::String::CURRENT)         MCM_Current_t::On_Option_Default(std::move(latent_id), option);
-        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Default(std::move(latent_id), option);
         else if (page == Const::String::FINISHED)   MCM_Finished_t::On_Option_Default(std::move(latent_id), option);
+        else if (page == Const::String::TITLED)     MCM_Titled_t::On_Option_Default(std::move(latent_id), option);
+        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Default(std::move(latent_id), option);
         else if (page == Const::String::OPTIONS)    MCM_Options_t::On_Option_Default(std::move(latent_id), option);
         else                                        MCM_Current_t::On_Option_Default(std::move(latent_id), option);
 
@@ -703,8 +698,9 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         String_t page = save_state.current_page;
 
         if (page == Const::String::CURRENT)         MCM_Current_t::On_Option_Highlight(std::move(latent_id), option);
-        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Highlight(std::move(latent_id), option);
         else if (page == Const::String::FINISHED)   MCM_Finished_t::On_Option_Highlight(std::move(latent_id), option);
+        else if (page == Const::String::TITLED)     MCM_Titled_t::On_Option_Highlight(std::move(latent_id), option);
+        else if (page == Const::String::MISC)       MCM_Misc_t::On_Option_Highlight(std::move(latent_id), option);
         else if (page == Const::String::OPTIONS)    MCM_Options_t::On_Option_Highlight(std::move(latent_id), option);
         else                                        MCM_Current_t::On_Option_Highlight(std::move(latent_id), option);
 

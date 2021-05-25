@@ -56,7 +56,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         SKYLIB_ASSERT_SOME(this->quest);
 
         if (this->quest->quest_type == Quest_Type_e::MISC) {
-            maybe<Player_Objective_t> objective = Player_t::Self()->Highest_Player_Objective(this->quest);
+            maybe<Player_Objective_t> objective = Player_t::Self()->Highest_Displayed_Player_Objective(this->quest);
             if (objective.Has_Value()) {
                 label = objective().Parse_Display_Text();
             } else {

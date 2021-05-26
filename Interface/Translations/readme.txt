@@ -1,1 +1,1 @@
-All of these text files in this folder (and not in any other folder) are in the public domain. Please feel free to translate them and upload them freely. If you upload any other part of the mod, you will need to abide by the relevant license(s). Thank you!
+All text files in this folder (and only this folder) that start with "doticu_hide_your_quests_" are in the public domain. Please feel free to translate them and upload them freely. For any other part of the mod, you will need to abide by the relevant license(s). Thank you!

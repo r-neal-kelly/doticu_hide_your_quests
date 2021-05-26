@@ -7,4 +7,4 @@ A SKSE plugin for The Elder Scrolls V: Skyrim with an MCM menu that allows you t
 - SkyUI 5.2SE+
 
 ### Thanks
-- Ellewyn at NexusMods for the suggestion, name of the mod, play-testing, bug reports, constructive criticism, support, and inspiration!
+- Ellewyn at NexusMods for the suggestion, name of the mod, play-testing, bug reports, constructive criticism, support, and inspiration! This mod wouldn't exist without you Ellewyn, so thank you!

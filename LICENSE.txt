@@ -1,4 +1,4 @@
-Copyright © 2020 r-neal-kelly, aka doticu
+Copyright © 2021 r-neal-kelly, aka doticu
 https://github.com/r-neal-kelly/doticu_hide_your_quests
 
 Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)

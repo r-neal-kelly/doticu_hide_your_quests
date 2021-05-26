@@ -1,0 +1,1 @@
+All of these text files in this folder (and not in any other folder) are in the public domain. Please feel free to translate them and upload them freely. If you upload any other part of the mod, you will need to abide by the relevant license(s). Thank you!

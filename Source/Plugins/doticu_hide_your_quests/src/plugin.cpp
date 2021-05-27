@@ -10,6 +10,10 @@
 #include "mcm.h"
 #include "plugin.h"
 
+//temp
+#include "doticu_skylib/player.h"
+//
+
 namespace doticu_skylib { namespace doticu_hide_your_quests {
 
     Plugin_t::Plugin_t() :
@@ -126,6 +130,10 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
                 }
             }
         }
+
+        //temp
+        Player_t::Self()->Log_Objectives();
+        //
     }
 
     void Plugin_t::On_Before_Delete_Game(some<const char*> file_path, u32 file_path_length)

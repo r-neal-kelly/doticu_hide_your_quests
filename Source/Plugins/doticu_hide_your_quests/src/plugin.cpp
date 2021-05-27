@@ -99,6 +99,11 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
     void Plugin_t::On_After_Load_Game(Bool_t did_load_successfully)
     {
+        //temp
+        _MESSAGE("before");
+        Player_t::Self()->Log_Objectives();
+        //
+
         if (did_load_successfully) {
             if (Is_Active()) {
                 if (Is_Installed()) {
@@ -132,6 +137,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         }
 
         //temp
+        _MESSAGE("after");
         Player_t::Self()->Log_Objectives();
         //
     }

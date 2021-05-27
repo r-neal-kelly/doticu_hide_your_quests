@@ -10,13 +10,6 @@
 #include "mcm.h"
 #include "plugin.h"
 
-//temp
-#include "doticu_skylib/player.h"
-#include "doticu_skylib/player_objective.h"
-#include "doticu_skylib/quest.h"
-#include "doticu_skylib/quest_objective.h"
-//
-
 namespace doticu_skylib { namespace doticu_hide_your_quests {
 
     Plugin_t::Plugin_t() :
@@ -102,29 +95,6 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
     void Plugin_t::On_After_Load_Game(Bool_t did_load_successfully)
     {
-        //temp
-        {
-            class Iterator_t :
-                public Iterator_i<some<Player_Objective_t*>>
-            {
-            public:
-                virtual Iterator_e operator ()(some<Player_Objective_t*> it) override
-                {
-                    if (it->objective &&
-                        it->objective->quest &&
-                        it->objective->quest->form_id == 0x000CA439 ||
-                        it->objective->quest->form_id == 0x000A34DE) {
-                        it->Log();
-                    }
-                    return Iterator_e::CONTINUE;
-                }
-            } iterator;
-
-            _MESSAGE("before");
-            Player_t::Self()->Iterate_Player_Objectives(iterator);
-        }
-        //
-
         if (did_load_successfully) {
             if (Is_Active()) {
                 if (Is_Installed()) {
@@ -156,29 +126,6 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
                 }
             }
         }
-
-        //temp
-        {
-            class Iterator_t :
-                public Iterator_i<some<Player_Objective_t*>>
-            {
-            public:
-                virtual Iterator_e operator ()(some<Player_Objective_t*> it) override
-                {
-                    if (it->objective &&
-                        it->objective->quest &&
-                        it->objective->quest->form_id == 0x000CA439 ||
-                        it->objective->quest->form_id == 0x000A34DE) {
-                        it->Log();
-                    }
-                    return Iterator_e::CONTINUE;
-                }
-            } iterator;
-
-            _MESSAGE("after");
-            Player_t::Self()->Iterate_Player_Objectives(iterator);
-        }
-        //
     }
 
     void Plugin_t::On_Before_Delete_Game(some<const char*> file_path, u32 file_path_length)

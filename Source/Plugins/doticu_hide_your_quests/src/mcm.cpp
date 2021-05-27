@@ -240,18 +240,10 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
                         } else if (Has_Hidden_Objective(it->objective())) {
                             it->state = Quest_Objective_State_e::DORMANT;
                         } else {
-                            //temp
-                            // if the instance id does not match the current, and if its misc, we may need to fail or dormant it.
-                            // the game may not be updating state correctly for radiant quests, or it's using this cache to maintain that state, which is silly
-                            //
-                            if (it->objective->quest->quest_type == Quest_Type_e::MISC) {
-                                if (it->instance_id == it->objective->quest->current_instance_id) {
-                                    it->state = it->objective->state;
-                                } else {
-                                    it->state = Quest_Objective_State_e::DORMANT;
-                                }
-                            } else {
+                            if (it->instance_id == it->objective->quest->current_instance_id) {
                                 it->state = it->objective->state;
+                            } else {
+                                it->state = Quest_Objective_State_e::DORMANT;
                             }
                         }
                     } else {

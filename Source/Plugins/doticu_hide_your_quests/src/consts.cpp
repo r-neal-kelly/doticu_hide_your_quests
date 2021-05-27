@@ -33,6 +33,6 @@ namespace doticu_skylib { namespace doticu_hide_your_quests { namespace Const { 
 
 namespace doticu_skylib { namespace doticu_hide_your_quests { namespace Const { namespace Version {
 
-    const Version_t<u16>    Self()  { return Version_t<u16>(1, 0, 0); }
+    const Version_t<u16>    Self()  { return Version_t<u16>(1, 0, 1); }
 
 }}}}

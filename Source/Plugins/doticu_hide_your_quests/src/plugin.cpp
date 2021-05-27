@@ -12,6 +12,9 @@
 
 //temp
 #include "doticu_skylib/player.h"
+#include "doticu_skylib/player_objective.h"
+#include "doticu_skylib/quest.h"
+#include "doticu_skylib/quest_objective.h"
 //
 
 namespace doticu_skylib { namespace doticu_hide_your_quests {
@@ -100,8 +103,26 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
     void Plugin_t::On_After_Load_Game(Bool_t did_load_successfully)
     {
         //temp
-        _MESSAGE("before");
-        Player_t::Self()->Log_Objectives();
+        {
+            class Iterator_t :
+                public Iterator_i<some<Player_Objective_t*>>
+            {
+            public:
+                virtual Iterator_e operator ()(some<Player_Objective_t*> it) override
+                {
+                    if (it->objective &&
+                        it->objective->quest &&
+                        it->objective->quest->form_id == 0x000CA439 ||
+                        it->objective->quest->form_id == 0x000A34DE) {
+                        it->Log();
+                    }
+                    return Iterator_e::CONTINUE;
+                }
+            } iterator;
+
+            _MESSAGE("before");
+            Player_t::Self()->Iterate_Player_Objectives(iterator);
+        }
         //
 
         if (did_load_successfully) {
@@ -137,8 +158,26 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         }
 
         //temp
-        _MESSAGE("after");
-        Player_t::Self()->Log_Objectives();
+        {
+            class Iterator_t :
+                public Iterator_i<some<Player_Objective_t*>>
+            {
+            public:
+                virtual Iterator_e operator ()(some<Player_Objective_t*> it) override
+                {
+                    if (it->objective &&
+                        it->objective->quest &&
+                        it->objective->quest->form_id == 0x000CA439 ||
+                        it->objective->quest->form_id == 0x000A34DE) {
+                        it->Log();
+                    }
+                    return Iterator_e::CONTINUE;
+                }
+            } iterator;
+
+            _MESSAGE("after");
+            Player_t::Self()->Iterate_Player_Objectives(iterator);
+        }
         //
     }
 

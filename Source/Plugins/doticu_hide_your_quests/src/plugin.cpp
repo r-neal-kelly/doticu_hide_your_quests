@@ -72,28 +72,28 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         }
     }
 
-    void Plugin_t::On_Before_Save_Game(some<const char*> file_path, u32 file_path_length)
+    void Plugin_t::On_Before_Save_Game(const std::string& file_name)
     {
         if (Is_Active() && Is_Installed() && Is_Quest_Running()) {
             MCM_t::On_Before_Save_Game();
         }
     }
 
-    void Plugin_t::On_After_Save_Game()
+    void Plugin_t::On_After_Save_Game(const std::string& file_name)
     {
         if (Is_Active() && Is_Installed() && Is_Quest_Running()) {
             MCM_t::On_After_Save_Game();
         }
     }
 
-    void Plugin_t::On_Before_Load_Game(some<const char*> file_path, u32 file_path_length)
+    void Plugin_t::On_Before_Load_Game(const std::string& file_name)
     {
         if (Is_Active() && Is_Installed() && Is_Quest_Running()) {
             MCM_t::On_Before_Load_Game();
         }
     }
 
-    void Plugin_t::On_After_Load_Game(Bool_t did_load_successfully)
+    void Plugin_t::On_After_Load_Game(const std::string& file_name, Bool_t did_load_successfully)
     {
         if (did_load_successfully) {
             if (Is_Active()) {
@@ -128,7 +128,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         }
     }
 
-    void Plugin_t::On_Before_Delete_Game(some<const char*> file_path, u32 file_path_length)
+    void Plugin_t::On_Before_Delete_Game(const std::string& file_name)
     {
     }
 

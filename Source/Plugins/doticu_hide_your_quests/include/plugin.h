@@ -23,11 +23,11 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
         virtual void    On_After_Load_Data() override;
         virtual void    On_After_New_Game() override;
-        virtual void    On_Before_Save_Game(some<const char*> file_path, u32 file_path_length) override;
-        virtual void    On_After_Save_Game() override;
-        virtual void    On_Before_Load_Game(some<const char*> file_path, u32 file_path_length) override;
-        virtual void    On_After_Load_Game(Bool_t did_load_successfully) override;
-        virtual void    On_Before_Delete_Game(some<const char*> file_path, u32 file_path_length) override;
+        virtual void    On_Before_Save_Game(const std::string& file_name) override;
+        virtual void    On_After_Save_Game(const std::string& file_name) override;
+        virtual void    On_Before_Load_Game(const std::string& file_name) override;
+        virtual void    On_After_Load_Game(const std::string& file_name, Bool_t did_load_successfully) override;
+        virtual void    On_Before_Delete_Game(const std::string& file_name) override;
         virtual void    On_Update(u32 time_stamp) override;
 
     public:

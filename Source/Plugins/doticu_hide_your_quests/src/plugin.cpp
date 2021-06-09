@@ -14,9 +14,9 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
     Plugin_t::Plugin_t() :
         SKSE_Plugin_t("doticu_hide_your_quests",
-                      Version_t<u16>(1, 5, 97),
+                      Version_t<u16>(1, 4, 15),
                       Operator_e::EQUAL_TO,
-                      Version_t<u16>(2, 0, 17),
+                      Version_t<u16>(2, 0, 12),
                       Operator_e::GREATER_THAN_OR_EQUAL_TO)
     {
         SKYLIB_LOG("doticu_hide_your_quests:");

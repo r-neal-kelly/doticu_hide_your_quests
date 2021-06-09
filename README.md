@@ -1,3 +1,6 @@
+# Work in Progress!
+This repo contains partially-converted and non-working code. Do not use it for anything except review so you can make your own changes.
+
 # Hide Your Quests
 An SKSE plugin for The Elder Scrolls V: Skyrim SE with an MCM menu that allows you to hide any of your journal's quests!
 
@@ -11,9 +14,9 @@ An SKSE plugin for The Elder Scrolls V: Skyrim SE with an MCM menu that allows y
 - The code is open source and completely made from scratch. It's also available on GitHub.
 
 ### Requirements
-- Skyrim SE 1.5.97
-- SKSE 2.0.17+
-- SkyUI 5.2SE+
+- Skyrim VR 1.4.15
+- SKSE 2.0.12+
+- SkyUI VR v1.0-beta.4+
 
 ### Thanks
 - [Ellewyn](https://www.nexusmods.com/users/42189405) at NexusMods for the suggestion, name of the mod, screenshots, play-testing, bug reports, constructive criticism, support, and inspiration! This mod simply wouldn't exist without you Ellewyn and you were there every step of the way, so thank you!

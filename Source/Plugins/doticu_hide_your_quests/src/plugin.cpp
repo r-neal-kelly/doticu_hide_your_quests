@@ -1,5 +1,5 @@
 /*
-    Copyright © 2020 r-neal-kelly, aka doticu
+    Copyright Â© 2020 r-neal-kelly, aka doticu
 */
 
 #include "doticu_skylib/global.inl"
@@ -9,6 +9,12 @@
 #include "consts.h"
 #include "mcm.h"
 #include "plugin.h"
+
+//temp
+#include "doticu_skylib/dynamic_array.inl"
+#include "doticu_skylib/game.h"
+#include "doticu_skylib/mod.h"
+//
 
 namespace doticu_skylib { namespace doticu_hide_your_quests {
 
@@ -38,7 +44,38 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
     void Plugin_t::On_After_Load_Data()
     {
+        //temp
+        SKYLIB_LOG("Beginning tests to verify that the binary is being read correctly.");
+
+        some<Game_t*> game = Game_t::Self()();
+        SKYLIB_ASSERT(reinterpret_cast<Word_t>(game()) == (Game_t::Base_Address() + 0x01F82AD8));
+
+        {
+            SKYLIB_LOG("Printing heavy mod names.");
+            Array_t<maybe<Mod_t*>>& heavy_mods = game->heavy_mods;
+            for (size_t idx = 0, end = heavy_mods.Count(); idx < end; idx += 1) {
+                maybe<Mod_t*> heavy_mod = heavy_mods[idx];
+                if (heavy_mod) {
+                    SKYLIB_LOG(SKYLIB_TAB "%s", heavy_mod->Name());
+                }
+            }
+        }
+
+        {
+            SKYLIB_LOG("Printing light mod names.");
+            Array_t<maybe<Mod_t*>>& light_mods = game->light_mods;
+            for (size_t idx = 0, end = light_mods.Count(); idx < end; idx += 1) {
+                maybe<Mod_t*> light_mod = light_mods[idx];
+                if (light_mod) {
+                    SKYLIB_LOG(SKYLIB_TAB "%s", light_mod->Name());
+                }
+            }
+        }
+        //
+
+        /*temp
         Start_Updating(std::chrono::milliseconds(2000));
+        */
     }
 
     void Plugin_t::On_After_New_Game()

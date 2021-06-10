@@ -72,7 +72,8 @@
       <AdditionalOptions>/release %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(TargetPath)" "$(ProjectDir)\..\..\..\SKSE\Plugins\$(TargetFileName)" /Y</Command>
+      <Command>copy "$(TargetPath)" "$(ProjectDir)\..\..\..\SKSE\Plugins\$(TargetFileName)" /Y
+copy "$(TargetPath)" "C:\Games\Steam\steamapps\common\SkyrimVR\Data\SKSE\Plugins\" /Y</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy Plugin to SKSE</Message>
@@ -100,7 +101,8 @@
       <AdditionalDependencies>$(skse_lib);kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(TargetPath)" "$(ProjectDir)\..\..\..\SKSE\Plugins\$(TargetFileName)" /Y</Command>
+      <Command>copy "$(TargetPath)" "$(ProjectDir)\..\..\..\SKSE\Plugins\$(TargetFileName)" /Y
+copy "$(TargetPath)" "C:\Games\Steam\steamapps\common\SkyrimVR\Data\SKSE\Plugins\" /Y</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy Plugin to SKSE</Message>

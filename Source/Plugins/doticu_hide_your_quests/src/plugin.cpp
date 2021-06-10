@@ -14,9 +14,9 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
     Plugin_t::Plugin_t() :
         SKSE_Plugin_t("doticu_hide_your_quests",
-                      Version_t<u16>(0, 0, 0),
-                      Operator_e::GREATER_THAN_OR_EQUAL_TO,
-                      Version_t<u16>(0, 0, 0),
+                      Version_t<u16>(1, 4, 15, 1),
+                      Operator_e::EQUAL_TO,
+                      Version_t<u16>(2, 0, 12),
                       Operator_e::GREATER_THAN_OR_EQUAL_TO)
     {
         SKYLIB_LOG("doticu_hide_your_quests:");
@@ -134,9 +134,9 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
 
     void Plugin_t::On_Update(u32 time_stamp)
     {
-        if (Is_Active() && Is_Installed() && Is_Quest_Running()) {
+        /*if (Is_Active() && Is_Installed() && Is_Quest_Running()) {
             MCM_t::On_Update();
-        }
+        }*/
     }
 
     Bool_t Plugin_t::Is_Active()

@@ -48,7 +48,7 @@ namespace doticu_skylib { namespace doticu_hide_your_quests {
         SKYLIB_LOG("Beginning tests to verify that the binary is being read correctly.");
 
         some<Game_t*> game = Game_t::Self()();
-        SKYLIB_ASSERT(reinterpret_cast<Word_t>(game()) == (Game_t::Base_Address() + 0x01F82AD8));
+        SKYLIB_ASSERT(game() == *reinterpret_cast<Game_t**>(Game_t::Base_Address() + 0x01F82AD8));
 
         {
             SKYLIB_LOG("Printing heavy mod names.");
